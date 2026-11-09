@@ -1,12 +1,18 @@
-name: Build Winlator Mali APK
+name: Build and startup-test GameHub Lite
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       flavor:
-        description: 'Product flavor to build'
+        description: Product flavor to build
         required: true
-        default: 'standard'
+        default: standard
         type: choice
         options:
           - standard
@@ -14,9 +20,9 @@ on:
           - ludashi
           - all
       build_type:
-        description: 'Build type (debug or release)'
+        description: Build type
         required: true
-        default: 'debug'
+        default: release
         type: choice
         options:
           - debug
@@ -25,13 +31,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: gamehub-lite-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-and-smoke-test:
+    name: Build, validate, and launch-test APK
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
+    env:
+      FLAVOR: ${{ github.event.inputs.flavor || 'standard' }}
+      BUILD_TYPE: ${{ github.event.inputs.build_type || 'release' }}
 
     steps:
-      - name: Check out repository with submodules
+      - name: Check out source and native submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -47,39 +61,138 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install Android SDK packages
-        run: >-
-          sdkmanager
-          "platforms;android-34"
-          "build-tools;35.0.0"
-          "cmake;3.22.1"
-          "ndk;29.0.14206865"
-
-      - name: Make Gradlew Executable
-        run: chmod +x ./gradlew
-
-      - name: Build APK(s)
+      - name: Install build dependencies
         run: |
-          FLAVOR="${{ github.event.inputs.flavor }}"
-          BUILD_TYPE="${{ github.event.inputs.build_type }}"
-          
-          # Capitalize build type for gradle task name (debug -> Debug, release -> Release)
-          CAP_TYPE="$(echo ${BUILD_TYPE:0:1} | tr '[:lower:]' '[:upper:]')${BUILD_TYPE:1}"
-          
-          if [ "$FLAVOR" = "all" ]; then
-            echo "Building all flavors for $BUILD_TYPE..."
-            ./gradlew assemble${CAP_TYPE} --no-daemon --stacktrace
+          sdkmanager --install \
+            "platforms;android-34" \
+            "build-tools;35.0.0" \
+            "cmake;3.22.1" \
+            "ndk;29.0.14206865"
+
+      - name: Verify required source and submodule files
+        run: |
+          set -euo pipefail
+          test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/cpp/CMakeLists.txt
+          test -f app/src/main/cpp/adrenotools/CMakeLists.txt
+          test -f gradle/wrapper/gradle-wrapper.jar
+          chmod +x ./gradlew
+
+      - name: Build selected APK flavor
+        run: |
+          set -euo pipefail
+          case "$BUILD_TYPE" in
+            debug) CAP_TYPE=Debug ;;
+            release) CAP_TYPE=Release ;;
+            *) echo "Unsupported build type: $BUILD_TYPE"; exit 1 ;;
+          esac
+
+          case "$FLAVOR" in
+            standard) CAP_FLAVOR=Standard ;;
+            antutu) CAP_FLAVOR=Antutu ;;
+            ludashi) CAP_FLAVOR=Ludashi ;;
+            all) CAP_FLAVOR=all ;;
+            *) echo "Unsupported flavor: $FLAVOR"; exit 1 ;;
+          esac
+
+          if [ "$CAP_FLAVOR" = all ]; then
+            ./gradlew ":app:assemble${CAP_TYPE}" --no-daemon --stacktrace
           else
-            CAP_FLAVOR="$(echo ${FLAVOR:0:1} | tr '[:lower:]' '[:upper:]')${FLAVOR:1}"
-            TASK_NAME="assemble${CAP_FLAVOR}${CAP_TYPE}"
-            echo "Executing task: :app:${TASK_NAME}..."
-            ./gradlew :app:${TASK_NAME} --no-daemon --stacktrace
+            ./gradlew ":app:assemble${CAP_FLAVOR}${CAP_TYPE}" --no-daemon --stacktrace
           fi
 
-      - name: Upload Built APK Artifacts
+      - name: Validate APK contents before device testing
+        run: |
+          set -euo pipefail
+          mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
+          if [ "${#APK_FILES[@]}" -eq 0 ]; then
+            echo "No APKs were produced."
+            exit 1
+          fi
+
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          for apk in "${APK_FILES[@]}"; do
+            echo "Validating $apk"
+            unzip -tq "$apk"
+            BADGING="$("$AAPT" dump badging "$apk")"
+            PACKAGE="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+            ACTIVITY="$(printf '%s\n' "$BADGING" | sed -n "s/^launchable-activity: name='\\([^']*\\)'.*/\\1/p")"
+
+            test -n "$PACKAGE" || { echo "Package name missing: $apk"; exit 1; }
+            test "$ACTIVITY" = "com.winlator.cmod.MainActivity" || {
+              echo "Unexpected or missing launcher activity in $apk: $ACTIVITY"
+              exit 1
+            }
+            unzip -Z1 "$apk" | grep -q '^lib/arm64-v8a/[^/]*\.so$' || {
+              echo "No ARM64 native libraries found in $apk"
+              exit 1
+            }
+            unzip -Z1 "$apk" | grep -q '^assets/imagefs\.tzst$' || {
+              echo "Required Windows root filesystem image is missing from $apk"
+              exit 1
+            }
+            echo "APK structure OK: $PACKAGE / $ACTIVITY"
+          done
+
+      - name: Run Android ARM64-compatibility emulator and launch smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            for attempt in $(seq 1 120); do
+              BOOTED="$(adb shell getprop sys.boot_completed | tr -d '\r')"
+              [ "$BOOTED" = "1" ] && break
+              sleep 2
+            done
+            [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] || {
+              echo "Android emulator did not finish booting."
+              exit 1
+            }
+
+            AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+            mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
+            for apk in "${APK_FILES[@]}"; do
+              BADGING="$("$AAPT" dump badging "$apk")"
+              PACKAGE="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+              echo "Installing and launching $PACKAGE from $apk"
+
+              adb logcat -c
+              adb install -r "$apk"
+              START_OUTPUT="$(adb shell am start -W -n "$PACKAGE/com.winlator.cmod.MainActivity" 2>&1)"
+              printf '%s\n' "$START_OUTPUT"
+              printf '%s\n' "$START_OUTPUT" | grep -q 'Status: ok' || {
+                echo "Activity manager did not report a successful launch."
+                adb logcat -d -t 600
+                exit 1
+              }
+
+              sleep 20
+              if ! adb shell pidof "$PACKAGE" >/dev/null 2>&1; then
+                echo "The app process exited after launch: $PACKAGE"
+                adb logcat -d -t 1000
+                exit 1
+              fi
+
+              if adb logcat -d -t 1000 | grep -E "FATAL EXCEPTION|Process: $PACKAGE([ :])|has died: $PACKAGE"; then
+                echo "A startup crash was detected for $PACKAGE"
+                exit 1
+              fi
+
+              adb uninstall "$PACKAGE"
+              echo "Startup smoke test passed: $PACKAGE"
+            done
+
+      - name: Publish APK artifacts only after every check passes
         uses: actions/upload-artifact@v4
         with:
-          name: winlator-mali-${{ github.event.inputs.flavor }}-${{ github.event.inputs.build_type }}
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-startup-verified
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
