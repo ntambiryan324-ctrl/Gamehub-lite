@@ -36,8 +36,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-smoke-test:
-    name: Build, validate, and launch-test APK
+  build-and-validate:
+    name: Build and validate APK
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -101,7 +101,7 @@ jobs:
             ./gradlew ":app:assemble${CAP_FLAVOR}${CAP_TYPE}" --no-daemon --stacktrace
           fi
 
-      - name: Validate APK contents before device testing
+      - name: Validate APK contents and required assets
         run: |
           set -euo pipefail
           mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
