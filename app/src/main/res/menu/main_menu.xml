@@ -8,6 +8,10 @@
                     android:id="@+id/main_menu_shortcuts"
                     android:icon="@drawable/icon_shortcut"
                     android:title="@string/shortcuts" />
+                                <item
+                    android:id="@+id/main_menu_game_library"
+                    android:icon="@drawable/icon_shortcut"
+                    android:title="Game Library" />
                 <item
                     android:id="@+id/main_menu_containers"
                     android:icon="@drawable/icon_container"
