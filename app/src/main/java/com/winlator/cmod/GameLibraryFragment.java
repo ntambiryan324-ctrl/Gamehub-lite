@@ -74,7 +74,7 @@ public class GameLibraryFragment extends Fragment {
 
         TextView heading = text("Game Library", 24, TEXT, true);
         root.addView(heading);
-        TextView intro = text("Browse games and use official sources. Free PC downloads are listed separately from Steam and Xbox store/cloud links.", 13, MUTED, false);
+        TextView intro = text("Browse games and use official sources. After downloading a Windows installer, open File Manager > Drive D: (Downloads), select the .exe file and choose Run.", 13, MUTED, false);
         LinearLayout.LayoutParams introLp = new LinearLayout.LayoutParams(-1, -2);
         introLp.topMargin = dp(6);
         root.addView(intro, introLp);
