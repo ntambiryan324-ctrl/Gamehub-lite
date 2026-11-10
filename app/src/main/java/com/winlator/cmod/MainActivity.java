@@ -220,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     // Main sections L1/R1 cycle through, in drawer order (About is a dialog, not a section).
     private static final int[] CONTROLLER_SECTIONS = {
-        R.id.main_menu_shortcuts, R.id.main_menu_containers, R.id.main_menu_input_controls,
+        R.id.main_menu_shortcuts, R.id.main_menu_game_library, R.id.main_menu_containers, R.id.main_menu_input_controls,
         R.id.main_menu_contents, R.id.main_menu_community_configs, R.id.main_menu_file_manager,
         R.id.main_menu_manage_graphics_drivers, R.id.main_menu_adrenotools_gpu_drivers, R.id.main_menu_settings
     };
@@ -476,6 +476,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         switch (item.getItemId()) {
             case R.id.main_menu_shortcuts:
                 show(new ShortcutsFragment(), false);  // Forward animation
+                break;
+            case R.id.main_menu_game_library:
+                show(new GameLibraryFragment(), false);
                 break;
             case R.id.main_menu_containers:
                 show(new ContainersFragment(), false);  // Forward animation
