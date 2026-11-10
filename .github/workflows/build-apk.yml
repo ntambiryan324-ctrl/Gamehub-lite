@@ -1,4 +1,4 @@
-name: Build and startup-test GameHub Lite
+name: Build and startup-test GameHub Lite (main)
 
 on:
   push:
