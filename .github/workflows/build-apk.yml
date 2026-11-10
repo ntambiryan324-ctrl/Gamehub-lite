@@ -74,8 +74,9 @@ jobs:
           set -euo pipefail
           test -f app/src/main/AndroidManifest.xml
           test -f app/src/main/cpp/CMakeLists.txt
-          test -f app/src/main/cpp/adrenotools/CMakeLists.txt
-          test -f gradle/wrapper/gradle-wrapper.jar
+          test -f app/src/main/assets/container_pattern_common.tzst
+          test -f app/src/main/cpp/gladiorenderer/CMakeLists.txt
+          test -f app/gradle/wrapper/gradle-wrapper.jar
           chmod +x ./gradlew
 
       - name: Build selected APK flavor
