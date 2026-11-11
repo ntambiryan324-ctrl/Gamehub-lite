@@ -47,10 +47,17 @@
             android:theme="@style/AppTheme.Dark"
             android:screenOrientation="user"
             android:exported="true"
+            android:launchMode="singleTop"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="gamehublite" android:host="steam-auth" android:path="/callback"/>
             </intent-filter>
         </activity>
 
