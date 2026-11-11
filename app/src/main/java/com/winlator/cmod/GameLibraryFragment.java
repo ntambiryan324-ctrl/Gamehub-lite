@@ -455,19 +455,20 @@ public class GameLibraryFragment extends Fragment {
 
     private void showApiKeyDialog() {
         if (!isAdded()) return;
-        if (!SteamAccountStore.isConnected(requireContext())) {
-            showSteamAccountDialog();
-            return;
-        }
         Dialog dialog = new Dialog(requireContext());
         LinearLayout root = dialogRoot();
         root.addView(text("Steam Web API access", 21, TEXT, true));
-        addTop(root, text("Steam OpenID confirms your account identity, but does not issue an API access token. Valve's owned-games and full catalogue APIs still require a standard Web API key. This key is encrypted locally with Android Keystore.", 12, MUTED, false), 8);
+        addTop(root, text("This is separate from Steam sign-in. A standard Steam Web API key is needed to download the complete public game catalogue and query your owned-games list. It is encrypted on this device with Android Keystore.", 12, MUTED, false), 8);
+        addTop(root, text("When registering the key, use this domain: ntambiryan324-ctrl.github.io", 11, MUTED, true), 5);
         Button openKey = glassButton("Get Web API key from Steam", true);
         addTop(root, openKey, 10);
         openKey.setOnClickListener(v -> openUrl("https://steamcommunity.com/dev/apikey"));
         EditText keyField = field("Paste your Steam Web API key");
         keyField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        try {
+            String existingKey = SteamAccountStore.getApiKey(requireContext());
+            if (!existingKey.isEmpty()) keyField.setText(existingKey);
+        } catch (Exception ignored) {}
         addTop(root, keyField, 10);
         TextView status = text("", 11, MUTED, false);
         addTop(root, status, 8);
@@ -475,10 +476,10 @@ public class GameLibraryFragment extends Fragment {
         addTop(root, save, 12);
         save.setOnClickListener(v -> {
             try {
-                SteamAccountStore.save(requireContext(), SteamAccountStore.getSteamId(requireContext()), keyField.getText().toString());
+                SteamAccountStore.saveApiKey(requireContext(), keyField.getText().toString());
                 status.setText("Key saved securely on this device.");
                 dialog.dismiss();
-                if ("My Games".equals(currentTab)) syncOwnedGames();
+                if ("My Games".equals(currentTab) && SteamAccountStore.isConnected(requireContext())) syncOwnedGames();
                 else if ("PC Games".equals(currentTab) || "Steam".equals(currentTab)) {
                     Toast.makeText(requireContext(), "Starting the full Steam catalogue index...", Toast.LENGTH_SHORT).show();
                     indexFullCatalog();
@@ -533,10 +534,11 @@ public class GameLibraryFragment extends Fragment {
         final LinearLayout target = catalogList;
         final String query = catalogQuery;
         final int offset = catalogOffset;
+        final android.content.Context appContext = requireContext().getApplicationContext();
         CATALOG_IO.execute(() -> {
             List<SteamStoreClient.Game> batch;
             try {
-                batch = SteamStoreClient.searchLocalCatalog(requireContext().getApplicationContext(), query, offset, 36);
+                batch = SteamStoreClient.searchLocalCatalog(appContext, query, offset, 36);
             } catch (Exception e) {
                 batch = new ArrayList<>();
             }
