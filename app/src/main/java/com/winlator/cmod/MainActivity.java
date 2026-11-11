@@ -23,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
@@ -157,6 +158,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
         }
+        handleSteamOpenIdCallback(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleSteamOpenIdCallback(intent);
+    }
+
+    private void handleSteamOpenIdCallback(Intent intent) {
+        if (!SteamOpenIdHelper.isCallback(intent)) return;
+        SteamOpenIdHelper.handleCallback(this, intent, (steamId, error) -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (error != null) {
+                Toast.makeText(this, "Steam sign-in failed: " + error, Toast.LENGTH_LONG).show();
+                return;
+            }
+            try {
+                SteamAccountStore.saveSteamId(this, steamId);
+                Toast.makeText(this, "Steam account linked successfully.", Toast.LENGTH_LONG).show();
+                Fragment active = getSupportFragmentManager().findFragmentById(R.id.FLFragmentContainer);
+                if (active instanceof GameLibraryFragment) {
+                    ((GameLibraryFragment) active).onSteamAccountLinked();
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "Could not save Steam account: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void showAllFilesAccessDialog() {
