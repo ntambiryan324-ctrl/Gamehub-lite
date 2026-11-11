@@ -636,39 +636,36 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         for (SteamStoreClient.Game game : games) {
-            row.addView(gameCard(game), new LinearLayout.LayoutParams(dp(222), dp(164)));
+            row.addView(gameCard(game), new LinearLayout.LayoutParams(dp(222), dp(190)));
         }
         hsv.addView(row);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(170));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(194));
         lp.bottomMargin = dp(16);
         pageContent.addView(hsv, lp);
     }
 
     private View gameCard(SteamStoreClient.Game game) {
-        FrameLayout card = new FrameLayout(requireContext());
-        card.setBackground(glassBackground(GLASS, 14));
+        LinearLayout card = new LinearLayout(requireContext());
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(6), dp(6), dp(6), dp(7));
+        card.setBackground(glassBackground(0xEFFFFFFF, 16));
         card.setClipToOutline(true);
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(dp(210), dp(152));
-        cardLp.rightMargin = dp(10);
-        card.setLayoutParams(cardLp);
+
         ImageView art = new ImageView(requireContext());
         art.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        card.addView(art, new FrameLayout.LayoutParams(-1, -1));
+        art.setBackground(glassBackground(0xFFE7EDF5, 11));
+        art.setClipToOutline(true);
+        card.addView(art, new LinearLayout.LayoutParams(-1, dp(104)));
         loadImage(art, imageFor(game));
-        View gradient = new View(requireContext());
-        gradient.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0x10000000, 0x44000000, 0xF0101219}));
-        card.addView(gradient, new FrameLayout.LayoutParams(-1, -1));
+
         LinearLayout caption = new LinearLayout(requireContext());
         caption.setOrientation(LinearLayout.VERTICAL);
-        caption.setGravity(Gravity.BOTTOM);
-        caption.setPadding(dp(11), dp(8), dp(11), dp(10));
-        FrameLayout.LayoutParams captionLp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
-        card.addView(caption, captionLp);
-        TextView name = text(game.name, 14, Color.WHITE, true);
+        caption.setPadding(dp(7), dp(7), dp(7), dp(2));
+        card.addView(caption, new LinearLayout.LayoutParams(-1, 0, 1));
+        TextView name = text(game.name, 13, TEXT, true);
         name.setMaxLines(2);
         caption.addView(name);
-        TextView price = text(game.price.isEmpty() ? "Steam PC game" : game.price, 11, 0xFFE0E7F1, false);
+        TextView price = text(game.price.isEmpty() ? "Steam PC game" : game.price, 11, MUTED, false);
         addTop(caption, price, 3);
         card.setOnClickListener(v -> openGameDetails(game));
         return card;
@@ -684,7 +681,7 @@ public class GameLibraryFragment extends Fragment {
             for (int j = 0; j < columns && i + j < games.size(); j++) {
                 SteamStoreClient.Game game = games.get(i + j);
                 View card = gameCard(game);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(152), 1);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(180), 1);
                 lp.rightMargin = dp(7);
                 lp.bottomMargin = dp(9);
                 row.addView(card, lp);
@@ -717,10 +714,10 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout card = new LinearLayout(requireContext());
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
-        card.setBackground(glassBackground(0x66434C5C, 16));
+        card.setBackground(glassBackground(0xEFFFFFFF, 16));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.topMargin = dp(5);
-        lp.bottomMargin = dp(15);
+        lp.topMargin = dp(7);
+        lp.bottomMargin = dp(13);
         pageContent.addView(card, lp);
         card.addView(text(title, 16, TEXT, true));
         TextView description = text(body, 12, MUTED, false);
@@ -761,6 +758,10 @@ public class GameLibraryFragment extends Fragment {
         if (pageContent == null) return;
         int keep = 3;
         while (pageContent.getChildCount() > keep) pageContent.removeViewAt(keep);
+        catalogList = null;
+        catalogLoading = false;
+        catalogHasMore = false;
+        catalogOffset = 0;
     }
 
     private void openGameDetails(SteamStoreClient.Game game) {
@@ -809,7 +810,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout bottom = new LinearLayout(requireContext());
         bottom.setGravity(Gravity.CENTER_VERTICAL);
         bottom.setPadding(dp(12), dp(8), dp(12), dp(8));
-        bottom.setBackground(glassBackground(0xDD202634, 14));
+        bottom.setBackground(glassBackground(0xF7FFFFFF, 14));
         Button action = glassButton(ownedIds.contains(game.appId) ? "Owned - Steam install setup" : "Buy game on Steam", true);
         bottom.addView(action, new LinearLayout.LayoutParams(-1, dp(48)));
         root.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
@@ -943,7 +944,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(12), dp(14), dp(12));
-        panel.setBackground(glassBackground(0x77434C5C, 15));
+        panel.setBackground(glassBackground(0xEFFFFFFF, 15));
         body.addView(panel);
         String hardware = hardwareSummary();
         panel.addView(text(hardware, 12, TEXT, false));
@@ -983,7 +984,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(12), dp(14), dp(12));
-        panel.setBackground(glassBackground(0x66434C5C, 14));
+        panel.setBackground(glassBackground(0xEFFFFFFF, 14));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(10);
         parent.addView(panel, lp);
@@ -1089,7 +1090,7 @@ public class GameLibraryFragment extends Fragment {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(18), dp(16), dp(18), dp(16));
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(27, 34, 48), Color.rgb(15, 18, 27), Color.rgb(35, 26, 39)}));
+                new int[]{Color.rgb(255, 255, 255), Color.rgb(240, 246, 253), Color.rgb(246, 240, 250)}));
         return root;
     }
 
@@ -1120,7 +1121,7 @@ public class GameLibraryFragment extends Fragment {
         edit.setHintTextColor(MUTED);
         edit.setSingleLine(true);
         edit.setPadding(dp(12), 0, dp(12), 0);
-        edit.setBackground(glassBackground(0x88464F60, 12));
+        edit.setBackground(glassBackground(0xEEFFFFFF, 12));
         return edit;
     }
 
@@ -1129,9 +1130,9 @@ public class GameLibraryFragment extends Fragment {
         button.setText(value);
         button.setTextSize(12);
         button.setAllCaps(false);
-        button.setTextColor(Color.WHITE);
+        button.setTextColor(primary ? Color.WHITE : TEXT);
         button.setPadding(dp(12), 0, dp(12), 0);
-        button.setBackground(glassBackground(primary ? 0xCC087FC1 : 0x66464F60, 12));
+        button.setBackground(glassBackground(primary ? 0xFF327FBE : 0xE4FFFFFF, 12));
         return button;
     }
 
@@ -1148,7 +1149,7 @@ public class GameLibraryFragment extends Fragment {
         GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 new int[]{color, adjustAlpha(color, 0.78f)});
         drawable.setCornerRadius(dp(radius));
-        drawable.setStroke(dp(1), 0x48FFFFFF);
+        drawable.setStroke(dp(1), 0xB5FFFFFF);
         return drawable;
     }
 
