@@ -165,7 +165,7 @@ public class GameLibraryFragment extends Fragment {
             TextView chip = text(tab, 13, tab.equals(currentTab) ? TEXT : MUTED, tab.equals(currentTab));
             chip.setGravity(Gravity.CENTER);
             chip.setPadding(dp(15), dp(10), dp(15), dp(10));
-            chip.setBackground(glassBackground(tab.equals(currentTab) ? 0xCC177BC0 : 0x333B4351, 18));
+            chip.setBackground(glassBackground(tab.equals(currentTab) ? 0xCC327FBE : 0xDCEAF3FC, 18));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(40));
             lp.rightMargin = dp(8);
             row.addView(chip, lp);
@@ -188,7 +188,7 @@ public class GameLibraryFragment extends Fragment {
             boolean selected = tabs[i].equals(currentTab);
             chip.setTextColor(selected ? TEXT : MUTED);
             chip.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
-            chip.setBackground(glassBackground(selected ? 0xCC177BC0 : 0x333B4351, 18));
+            chip.setBackground(glassBackground(selected ? 0xCC327FBE : 0xDCEAF3FC, 18));
         }
     }
 
@@ -196,7 +196,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout shell = new LinearLayout(requireContext());
         shell.setGravity(Gravity.CENTER_VERTICAL);
         shell.setPadding(dp(12), 0, dp(12), 0);
-        shell.setBackground(glassBackground(0x77464F60, 13));
+        shell.setBackground(glassBackground(0xEFFFFFFF, 13));
         TextView icon = text("⌕", 24, TEXT, false);
         shell.addView(icon, new LinearLayout.LayoutParams(dp(32), dp(48)));
         searchField = new EditText(requireContext());
@@ -852,7 +852,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout meta = new LinearLayout(requireContext());
         meta.setOrientation(LinearLayout.VERTICAL);
         meta.setPadding(dp(14), dp(12), dp(14), dp(12));
-        meta.setBackground(glassBackground(0x66434C5C, 15));
+        meta.setBackground(glassBackground(0xEFFFFFFF, 15));
         body.addView(meta, new LinearLayout.LayoutParams(-1, -2));
         TextView title = text(game.name, 21, TEXT, true);
         meta.addView(title);
@@ -863,7 +863,7 @@ public class GameLibraryFragment extends Fragment {
                 JSONObject g = genres.optJSONObject(i);
                 if (g != null) names.add(g.optString("description"));
             }
-            if (!names.isEmpty()) addTop(meta, text(String.join("  •  ", names), 12, 0xFFBDD9F6, true), 6);
+            if (!names.isEmpty()) addTop(meta, text(String.join("  •  ", names), 12, ACCENT, true), 6);
         }
         addTop(meta, text("Developer: " + joinArray(data.optJSONArray("developers")), 12, MUTED, false), 8);
         addTop(meta, text("Publisher: " + joinArray(data.optJSONArray("publishers")), 12, MUTED, false), 4);
@@ -1002,7 +1002,7 @@ public class GameLibraryFragment extends Fragment {
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(12), dp(14), dp(12));
-        panel.setBackground(glassBackground(0x66434C5C, 14));
+        panel.setBackground(glassBackground(0xEFFFFFFF, 14));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(10);
         parent.addView(panel, lp);
