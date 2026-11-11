@@ -764,6 +764,7 @@ public class GameLibraryFragment extends Fragment {
                 JSONObject mp4 = movie.optJSONObject("mp4");
                 if (mp4 != null) video = mp4.optString("max", mp4.optString("480", ""));
                 if (video.isEmpty()) video = movie.optString("webm", "");
+                final String trailerUrl = video;
                 FrameLayout tile = new FrameLayout(requireContext());
                 tile.setBackground(glassBackground(GLASS, 12));
                 tile.setClipToOutline(true);
