@@ -119,7 +119,7 @@ public final class SteamStoreClient {
     public static void fetchOwnedGames(String steamId, String apiKey, Callback<List<Game>> callback) {
         IO.execute(() -> {
             try {
-                String url = API + "/IPlayerService/GetOwnedGames/v1/?key=" + enc(apiKey)
+                String url = PARTNER_API + "/IPlayerService/GetOwnedGames/v1/?key=" + enc(apiKey)
                         + "&steamid=" + enc(steamId)
                         + "&include_appinfo=true&include_played_free_games=true";
                 JSONObject root = getJson(url);
@@ -170,7 +170,7 @@ public final class SteamStoreClient {
                     if (apps == null || apps.length() == 0) break;
                     db.insertApps(apps);
                     indexed += apps.length();
-                    int next = response.optInt("last_appid", apps.optJSONObject(apps.length() - 1).optInt("appid"));
+                    int lastInPage = 0;\n                    for (int i = apps.length() - 1; i >= 0 && lastInPage == 0; i--) { JSONObject last = apps.optJSONObject(i); if (last != null) lastInPage = last.optInt("appid"); }\n                    int next = response.optInt("last_appid", lastInPage);
                     boolean more = response.optBoolean("have_more_results", false);
                     postProgress(progress, indexed, false, null);
                     if (!more || next <= lastAppId) break;
@@ -305,7 +305,7 @@ public final class SteamStoreClient {
             List<Game> result = new ArrayList<>();
             String pattern = "%" + query.replace("%", "\\%").replace("_", "\\_") + "%";
             try (Cursor c = getReadableDatabase().rawQuery(
-                    "SELECT appid,name FROM apps WHERE name LIKE ? ESCAPE '\\\\' COLLATE NOCASE ORDER BY name LIMIT ?",
+                    "SELECT appid,name FROM apps WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?",
                     new String[]{pattern, String.valueOf(Math.max(1, limit))})) {
                 while (c.moveToNext()) {
                     Game g = new Game();
