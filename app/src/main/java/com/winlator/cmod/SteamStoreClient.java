@@ -31,7 +31,6 @@ public final class SteamStoreClient {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final String STORE = "https://store.steampowered.com";
     private static final String API = "https://api.steampowered.com";
-    private static final String PARTNER_API = "https://partner.steam-api.com";
     private static final String COUNTRY = "us";
     private static final String LANGUAGE = "english";
 
@@ -119,7 +118,7 @@ public final class SteamStoreClient {
     public static void fetchOwnedGames(String steamId, String apiKey, Callback<List<Game>> callback) {
         IO.execute(() -> {
             try {
-                String url = PARTNER_API + "/IPlayerService/GetOwnedGames/v1/?key=" + enc(apiKey)
+                String url = API + "/IPlayerService/GetOwnedGames/v1/?key=" + enc(apiKey)
                         + "&steamid=" + enc(steamId)
                         + "&include_appinfo=true&include_played_free_games=true";
                 JSONObject root = getJson(url);
@@ -161,7 +160,7 @@ public final class SteamStoreClient {
                     input.put("include_hardware", false);
                     input.put("max_results", 50000);
                     if (lastAppId > 0) input.put("last_appid", lastAppId);
-                    String url = PARTNER_API + "/IStoreService/GetAppList/v1/?key=" + enc(apiKey)
+                    String url = API + "/IStoreService/GetAppList/v1/?key=" + enc(apiKey)
                             + "&input_json=" + enc(input.toString());
                     JSONObject root = getJson(url);
                     JSONObject response = root.optJSONObject("response");
@@ -195,8 +194,12 @@ public final class SteamStoreClient {
     }
 
     public static List<Game> searchLocalCatalog(Context context, String query, int limit) {
+        return searchLocalCatalog(context, query, 0, limit);
+    }
+
+    public static List<Game> searchLocalCatalog(Context context, String query, int offset, int limit) {
         SteamCatalogDb db = new SteamCatalogDb(context.getApplicationContext());
-        try { return db.search(query, limit); }
+        try { return db.search(query, offset, limit); }
         finally { db.close(); }
     }
 
@@ -310,12 +313,13 @@ public final class SteamStoreClient {
                 db.setTransactionSuccessful();
             } finally { db.endTransaction(); }
         }
-        List<Game> search(String query, int limit) {
+        List<Game> search(String query, int offset, int limit) {
             List<Game> result = new ArrayList<>();
-            String pattern = "%" + query + "%";
+            String cleanQuery = query == null ? "" : query.trim();
+            String pattern = cleanQuery.isEmpty() ? "%" : "%" + cleanQuery + "%";
             try (Cursor c = getReadableDatabase().rawQuery(
-                    "SELECT appid,name FROM apps WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?",
-                    new String[]{pattern, String.valueOf(Math.max(1, limit))})) {
+                    "SELECT appid,name FROM apps WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ? OFFSET ?",
+                    new String[]{pattern, String.valueOf(Math.max(1, limit)), String.valueOf(Math.max(0, offset))})) {
                 while (c.moveToNext()) {
                     Game g = new Game();
                     g.appId = c.getInt(0);
