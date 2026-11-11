@@ -22,6 +22,15 @@ public final class SteamAccountStore {
 
     private SteamAccountStore() {}
 
+    public static void saveSteamId(Context context, String steamId) {
+        if (steamId == null || !steamId.matches("[0-9]{17}")) throw new IllegalArgumentException("Steam returned an invalid SteamID64.");
+        prefs(context).edit().putString(STEAM_ID, steamId.trim()).apply();
+    }
+
+    public static boolean hasApiKey(Context context) {
+        return !prefs(context).getString(API_KEY, "").isEmpty();
+    }
+
     public static void save(Context context, String steamId, String apiKey) throws Exception {
         if (steamId == null || !steamId.matches("[0-9]{17}")) throw new IllegalArgumentException("SteamID64 must contain 17 digits.");
         if (apiKey == null || apiKey.trim().length() < 20) throw new IllegalArgumentException("Enter a valid Steam Web API key.");
@@ -57,7 +66,7 @@ public final class SteamAccountStore {
     }
 
     public static boolean isConnected(Context context) {
-        return !getSteamId(context).isEmpty() && !prefs(context).getString(API_KEY, "").isEmpty();
+        return !getSteamId(context).isEmpty();
     }
 
     public static void clear(Context context) {
