@@ -412,6 +412,14 @@ public class GameLibraryFragment extends Fragment {
         }
     }
 
+    private void showOwnedLibraryError(String error) {
+        removeDynamicContent();
+        addSectionTitle("My Steam Games", "The Steam library could not be loaded");
+        addMessage("Steam did not return your games",
+                error == null ? "Check that Steam Game Details are public and that the Web API key is valid." : error,
+                "Steam account settings", this::showApiKeyDialog);
+    }
+
     private void showSteamAccountDialog() {
         if (!isAdded()) return;
         Dialog dialog = new Dialog(requireContext());
