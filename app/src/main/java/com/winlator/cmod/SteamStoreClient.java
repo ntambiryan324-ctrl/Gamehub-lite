@@ -167,10 +167,19 @@ public final class SteamStoreClient {
                     JSONObject response = root.optJSONObject("response");
                     if (response == null) throw new Exception("Steam catalogue response was not recognized.");
                     JSONArray apps = response.optJSONArray("apps");
+                    if (apps == null) {
+                        JSONObject appBucket = response.optJSONObject("apps");
+                        if (appBucket != null) apps = appBucket.optJSONArray("app");
+                    }
                     if (apps == null || apps.length() == 0) break;
                     db.insertApps(apps);
                     indexed += apps.length();
-                    int lastInPage = 0;\n                    for (int i = apps.length() - 1; i >= 0 && lastInPage == 0; i--) { JSONObject last = apps.optJSONObject(i); if (last != null) lastInPage = last.optInt("appid"); }\n                    int next = response.optInt("last_appid", lastInPage);
+                    int lastInPage = 0;
+                    for (int i = apps.length() - 1; i >= 0 && lastInPage == 0; i--) {
+                        JSONObject last = apps.optJSONObject(i);
+                        if (last != null) lastInPage = last.optInt("appid");
+                    }
+                    int next = response.optInt("last_appid", lastInPage);
                     boolean more = response.optBoolean("have_more_results", false);
                     postProgress(progress, indexed, false, null);
                     if (!more || next <= lastAppId) break;
@@ -303,7 +312,7 @@ public final class SteamStoreClient {
         }
         List<Game> search(String query, int limit) {
             List<Game> result = new ArrayList<>();
-            String pattern = "%" + query.replace("%", "\\%").replace("_", "\\_") + "%";
+            String pattern = "%" + query + "%";
             try (Cursor c = getReadableDatabase().rawQuery(
                     "SELECT appid,name FROM apps WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?",
                     new String[]{pattern, String.valueOf(Math.max(1, limit))})) {
