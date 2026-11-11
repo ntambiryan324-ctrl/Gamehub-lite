@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Return to GameHub Lite</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f7fb;color:#1e293b}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+main{max-width:420px;width:100%;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.95);border-radius:24px;padding:28px;box-shadow:0 18px 60px rgba(45,65,95,.14);backdrop-filter:blur(18px)}
+h1{font-size:22px;margin:0 0 8px}p{line-height:1.55;color:#64748b}
+a{display:inline-block;background:#287ac2;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:650}
+</style>
+</head>
+<body>
+<main>
+<h1>Steam sign-in confirmed</h1>
+<p>Returning to GameHub Lite to verify your Steam identity. Do not close this page until the app opens.</p>
+<a id="return" href="#">Return to GameHub Lite</a>
+<p id="status" aria-live="polite">Opening the app…</p>
+</main>
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var mode = params.get("openid.mode");
+  var target = "gamehublite://steam-auth/callback" + window.location.search;
+  var link = document.getElementById("return");
+  link.href = target;
+  if (mode !== "id_res") {
+    document.getElementById("status").textContent = "Steam sign-in was cancelled or did not complete. Return to GameHub Lite and try again.";
+    link.textContent = "Return to GameHub Lite";
+    return;
+  }
+  window.location.replace(target);
+  setTimeout(function(){
+    document.getElementById("status").textContent = "If the app did not open automatically, tap the button above.";
+  }, 1200);
+})();
+</script>
+</body>
+</html>
