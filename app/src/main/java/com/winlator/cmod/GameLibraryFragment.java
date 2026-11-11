@@ -367,7 +367,7 @@ public class GameLibraryFragment extends Fragment {
                 ownedGames.addAll(games);
                 ownedIds.clear();
                 for (SteamStoreClient.Game game : games) ownedIds.add(game.appId);
-                if (pageContent != null && "My Games".equals(currentTab)) showOwnedLibrary();
+                if (pageContent != null && "My Games".equals(currentTab)) { removeDynamicContent(); showOwnedLibrary(); }
                 Toast.makeText(requireContext(), "Synced " + games.size() + " Steam games.", Toast.LENGTH_SHORT).show();
             });
         } catch (Exception e) {
@@ -776,7 +776,7 @@ public class GameLibraryFragment extends Fragment {
                 play.setBackground(glassBackground(0xBB10151F, 8));
                 FrameLayout.LayoutParams playLp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
                 tile.addView(play, playLp);
-                tile.setOnClickListener(v -> openUrl(video.isEmpty() ? storeUrl(data.optInt("steam_appid")) : video));
+                tile.setOnClickListener(v -> openUrl(trailerUrl.isEmpty() ? storeUrl(data.optInt("steam_appid")) : trailerUrl));
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(260), dp(145));
                 lp.rightMargin = dp(10);
                 row.addView(tile, lp);
