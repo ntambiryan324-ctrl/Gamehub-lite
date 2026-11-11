@@ -290,41 +290,51 @@ public class GameLibraryFragment extends Fragment {
     }
 
     private void showSteamStore() {
-        addSectionTitle("Steam Games", "Live featured games from the Steam Store");
+        addSectionTitle("Steam Games", "Browse the Steam PC store catalogue");
         if (featured.isEmpty()) {
             addMessage("Loading Steam games", "Retrieving current storefront categories...", null, null);
             loadFeatured();
         } else {
-            addShelf("Top Steam discoveries", featured.subList(0, Math.min(12, featured.size())));
-            if (featured.size() > 12) addShelf("Continue exploring", featured.subList(12, Math.min(30, featured.size())));
+            addShelf("Trending on Steam", featured.subList(0, Math.min(12, featured.size())));
         }
-        addMessage("Search the Steam Store", "Use the search bar above to look up any specific Steam title. Connect a Steam Web API key to index the complete public PC game catalogue.", "Connect Steam", this::showSteamAccountDialog);
+        addGlassInfo("Explore the complete catalogue", "Open the full indexed Steam games list. Once the catalogue has been indexed, you can keep scrolling through the list or search by title.", "Browse all Steam games", () -> {
+            currentTab = "PC Games";
+            showCurrentTab();
+        });
     }
 
     private void showPcCatalog() {
         int count = SteamStoreClient.catalogCount(requireContext());
-        addSectionTitle("PC Games", count > 0 ? String.format(Locale.US, "%,d Steam catalogue entries indexed", count) : "Browse PC games from Steam");
+        addSectionTitle("All Steam PC Games", count > 0
+                ? String.format(Locale.US, "%,d games indexed locally • scroll to load more", count)
+                : "Build the full catalogue once, then browse it offline");
         if (count == 0) {
-            addGlassInfo("Full Steam catalogue", "The complete Steam PC game list can be indexed using your own Steam Web API key. The key stays encrypted on this device.", "Connect & index catalogue", this::showSteamAccountDialog);
-        } else {
-            addGlassInfo("Full catalogue ready", "Search above to find games across the indexed Steam catalogue. App details, images, trailers and store links are retrieved when you open a game.", "Refresh catalogue", this::showSteamAccountDialog);
+            addGlassInfo("Full Steam catalogue", "Steam provides a paginated public catalogue through its Web API. A standard Steam Web API key is needed for this one-time indexing step; it is encrypted locally and never uploaded by GameHub Lite.", "Set up Steam catalogue access", this::showApiKeyDialog);
+            if (!featured.isEmpty()) addShelf("Store highlights while you set it up", featured.subList(0, Math.min(12, featured.size())));
+            return;
         }
-        if (!featured.isEmpty()) addShelf("Popular Windows games", featured.subList(0, Math.min(20, featured.size())));
+        beginCatalogList("");
     }
 
     private void showOwnedLibrary() {
-        addSectionTitle("My Steam Games", SteamAccountStore.isConnected(requireContext())
-                ? "Games visible in your linked Steam account" : "Connect a Steam account to sync your library");
-        if (!SteamAccountStore.isConnected(requireContext())) {
-            addGlassInfo("Connect Steam", "Use Steam's own Web API key and your 64-bit Steam ID. GameHub Lite never asks for your Steam password. Your Steam Game Details privacy must be Public for this API to return the owned games list.", "Connect Steam account", this::showSteamAccountDialog);
+        boolean linked = SteamAccountStore.isConnected(requireContext());
+        addSectionTitle("My Steam Games", linked
+                ? "Steam account linked: " + SteamAccountStore.getSteamId(requireContext())
+                : "Link your Steam account to view your library");
+        if (!linked) {
+            addGlassInfo("Sign in with Steam", "Continue to Steam's own secure sign-in page. Steam handles your password and any email or Steam Guard verification code. GameHub Lite receives only the verified SteamID.", "Sign in with Steam", this::showSteamAccountDialog);
+            return;
+        }
+        if (!SteamAccountStore.hasApiKey(requireContext())) {
+            addGlassInfo("Steam account linked", "Your Steam identity is verified. To retrieve the owned-games list through Valve's official GetOwnedGames API, the app also needs a standard Web API key and your Steam Game Details privacy must allow access.", "Add Steam Web API key", this::showApiKeyDialog);
             return;
         }
         if (ownedGames.isEmpty()) {
             showLoading("Syncing your Steam library...");
             syncOwnedGames();
         } else {
-            addShelf("Your owned PC games", ownedGames);
-            addGlassInfo("Library sync", "The list is read from Steam's official GetOwnedGames API. Game files are not downloaded by this catalogue screen.", "Sync again", this::syncOwnedGames);
+            addShelf("Your Steam library", ownedGames);
+            addGlassInfo("Library sync", "Synced from Steam's GetOwnedGames API. Installing the actual game files through the official Steam client is a separate integration step.", "Sync again", this::syncOwnedGames);
         }
     }
 
@@ -337,36 +347,35 @@ public class GameLibraryFragment extends Fragment {
     }
 
     private void runSearch(String query) {
-        if (!isAdded() || pageContent == null || query == null || query.trim().length() < 2 || searchRunning) return;
-        searchRunning = true;
+        if (!isAdded() || pageContent == null || query == null || query.trim().length() < 2) return;
         removeDynamicContent();
-        addSectionTitle("Search results", "Searching Steam Store for \"" + query + "\"");
-        showLoading("Searching...");
-        int catalogCount = SteamStoreClient.catalogCount(requireContext());
-        if (catalogCount > 0) {
-            List<SteamStoreClient.Game> local = SteamStoreClient.searchLocalCatalog(requireContext(), query, 50);
-            if (!local.isEmpty()) {
-                searchRunning = false;
-                removeDynamicContent();
-                addSectionTitle("Search results", local.size() + " matches in your indexed Steam catalogue");
-                addGrid(local);
-                return;
-            }
+        addSectionTitle("Search results", "Searching for \"" + query + "\" across the Steam catalogue");
+        int indexedCount = SteamStoreClient.catalogCount(requireContext());
+        if (indexedCount > 0) {
+            beginCatalogList(query);
+            return;
         }
+        showLoading("Searching the Steam Store...");
         SteamStoreClient.search(query, (games, error) -> {
-            searchRunning = false;
             if (!isAdded() || pageContent == null || !query.equals(currentQuery)) return;
             removeDynamicContent();
-            addSectionTitle("Search results", games == null ? "Steam search could not be completed" : games.size() + " results from the Steam Store");
+            addSectionTitle("Search results", games == null ? "Steam search could not be completed" : games.size() + " quick matches");
             if (games == null || games.isEmpty()) {
-                addMessage("No results", error != null ? error : "Try a different game title.", null, null);
-            } else addGrid(games);
+                addMessage("No results", error != null ? error : "Try a different title.", null, null);
+            } else {
+                addGrid(games);
+                addGlassInfo("Search every Steam game", "These are quick storefront matches. Index the complete catalogue once to search and continuously scroll through the full Steam PC listing.", "Index full catalogue", this::showApiKeyDialog);
+            }
         });
     }
 
     private void syncOwnedGames() {
         if (!SteamAccountStore.isConnected(requireContext())) {
             showSteamAccountDialog();
+            return;
+        }
+        if (!SteamAccountStore.hasApiKey(requireContext())) {
+            showApiKeyDialog();
             return;
         }
         try {
@@ -383,104 +392,203 @@ public class GameLibraryFragment extends Fragment {
                 ownedGames.addAll(games);
                 ownedIds.clear();
                 for (SteamStoreClient.Game game : games) ownedIds.add(game.appId);
-                if (pageContent != null && "My Games".equals(currentTab)) { removeDynamicContent(); showOwnedLibrary(); }
+                if (pageContent != null && "My Games".equals(currentTab)) {
+                    removeDynamicContent();
+                    showOwnedLibrary();
+                }
                 Toast.makeText(requireContext(), "Synced " + games.size() + " Steam games.", Toast.LENGTH_SHORT).show();
             });
         } catch (Exception e) {
-            Toast.makeText(requireContext(), "Could not decrypt the saved Steam key. Reconnect the account.", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), "Could not decrypt the saved Steam key. Add it again.", Toast.LENGTH_LONG).show();
         }
     }
 
-    private void showOwnedLibraryError(String error) {
-        removeDynamicContent();
-        addSectionTitle("My Steam Games", "The Steam library could not be loaded");
-        addMessage("Steam did not return your games", error, "Account settings", this::showSteamAccountDialog);
+    public void onSteamAccountLinked() {
+        if (!isAdded()) return;
+        if (accountStatus != null) accountStatus.setText("Steam account linked: " + SteamAccountStore.getSteamId(requireContext()));
+        if ("My Games".equals(currentTab) && pageContent != null) {
+            removeDynamicContent();
+            showOwnedLibrary();
+        }
     }
 
     private void showSteamAccountDialog() {
         if (!isAdded()) return;
         Dialog dialog = new Dialog(requireContext());
         LinearLayout root = dialogRoot();
-        TextView title = text("Connect Steam", 22, TEXT, true);
-        root.addView(title);
-        TextView description = text("GameHub Lite uses your own Steam Web API key to read your public game list and index the Steam catalogue. Never enter your Steam password here.", 13, MUTED, false);
-        addTop(root, description, 8);
+        root.addView(text("Connect Steam", 22, TEXT, true));
+        addTop(root, text("Steam sign-in opens on Steam's official website. Enter your username, password and any email or Steam Guard verification code there—not inside GameHub Lite. The app never receives or stores those credentials.", 13, MUTED, false), 8);
 
-        Button createKey = glassButton("Get a Steam Web API key", true);
-        root.addView(createKey, new LinearLayout.LayoutParams(-1, dp(42)));
-        createKey.setOnClickListener(v -> openUrl("https://steamcommunity.com/dev/apikey"));
-
-        EditText steamId = field("SteamID64 (17 digits)");
-        steamId.setInputType(InputType.TYPE_CLASS_NUMBER);
-        steamId.setText(SteamAccountStore.getSteamId(requireContext()));
-        addTop(root, steamId, 12);
-
-        EditText apiKey = field("Your Steam Web API key");
-        apiKey.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        addTop(root, apiKey, 8);
-
-        TextView privacy = text("Set Steam Profile > Game Details to Public before syncing. The API key is encrypted with Android Keystore and is not included in the APK.", 11, MUTED, false);
-        addTop(root, privacy, 8);
-
-        LinearLayout buttons = new LinearLayout(requireContext());
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setGravity(Gravity.CENTER_VERTICAL);
-        Button save = glassButton("Save & sync games", true);
-        Button index = glassButton("Index full catalogue", false);
-        LinearLayout.LayoutParams b1 = new LinearLayout.LayoutParams(0, dp(44), 1);
-        b1.rightMargin = dp(6);
-        buttons.addView(save, b1);
-        buttons.addView(index, new LinearLayout.LayoutParams(0, dp(44), 1));
-        addTop(root, buttons, 14);
-
-        TextView status = text("", 12, MUTED, false);
-        addTop(root, status, 8);
+        Button signIn = glassButton(SteamAccountStore.isConnected(requireContext()) ? "Reconnect Steam account" : "Sign in with Steam", true);
+        LinearLayout.LayoutParams signLp = new LinearLayout.LayoutParams(-1, dp(46));
+        signLp.topMargin = dp(14);
+        root.addView(signIn, signLp);
+        signIn.setOnClickListener(v -> {
+            dialog.dismiss();
+            try {
+                SteamOpenIdHelper.launchLogin(requireContext());
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "Could not open Steam sign-in: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
 
         if (SteamAccountStore.isConnected(requireContext())) {
-            Button disconnect = glassButton("Disconnect Steam", false);
+            addTop(root, text("Linked SteamID64: " + SteamAccountStore.getSteamId(requireContext()), 12, MUTED, false), 10);
+            Button api = glassButton("Steam Web API key and catalogue settings", false);
+            addTop(root, api, 10);
+            api.setOnClickListener(v -> { dialog.dismiss(); showApiKeyDialog(); });
+            Button disconnect = glassButton("Disconnect Steam account", false);
             addTop(root, disconnect, 8);
             disconnect.setOnClickListener(v -> {
                 SteamAccountStore.clear(requireContext());
                 ownedGames.clear();
                 ownedIds.clear();
-                accountStatus.setText("Steam account disconnected");
+                if (accountStatus != null) accountStatus.setText("Steam account disconnected");
                 dialog.dismiss();
                 showCurrentTab();
             });
+        } else {
+            addTop(root, text("After Steam confirms the login, you will return here automatically and the account will be linked.", 11, MUTED, false), 10);
         }
+        showDialog(dialog, root, true);
+    }
 
+    private void showApiKeyDialog() {
+        if (!isAdded()) return;
+        if (!SteamAccountStore.isConnected(requireContext())) {
+            showSteamAccountDialog();
+            return;
+        }
+        Dialog dialog = new Dialog(requireContext());
+        LinearLayout root = dialogRoot();
+        root.addView(text("Steam Web API access", 21, TEXT, true));
+        addTop(root, text("Steam OpenID confirms your account identity, but does not issue an API access token. Valve's owned-games and full catalogue APIs still require a standard Web API key. This key is encrypted locally with Android Keystore.", 12, MUTED, false), 8);
+        Button openKey = glassButton("Get Web API key from Steam", true);
+        addTop(root, openKey, 10);
+        openKey.setOnClickListener(v -> openUrl("https://steamcommunity.com/dev/apikey"));
+        EditText keyField = field("Paste your Steam Web API key");
+        keyField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        addTop(root, keyField, 10);
+        TextView status = text("", 11, MUTED, false);
+        addTop(root, status, 8);
+        Button save = glassButton("Save key securely", true);
+        addTop(root, save, 12);
         save.setOnClickListener(v -> {
             try {
-                SteamAccountStore.save(requireContext(), steamId.getText().toString(), apiKey.getText().toString());
-                status.setText("Steam API key saved securely. Syncing your games...");
-                accountStatus.setText("Steam account connected - syncing library");
-                syncOwnedGames();
+                SteamAccountStore.save(requireContext(), SteamAccountStore.getSteamId(requireContext()), keyField.getText().toString());
+                status.setText("Key saved securely on this device.");
+                dialog.dismiss();
+                if ("My Games".equals(currentTab)) syncOwnedGames();
+                else if ("PC Games".equals(currentTab) || "Steam".equals(currentTab)) {
+                    Toast.makeText(requireContext(), "Starting the full Steam catalogue index...", Toast.LENGTH_SHORT).show();
+                    indexFullCatalog();
+                }
             } catch (Exception e) {
                 status.setText(e.getMessage());
             }
         });
+        showDialog(dialog, root, true);
+    }
 
-        index.setOnClickListener(v -> {
+    private void indexFullCatalog() {
+        if (!SteamAccountStore.hasApiKey(requireContext())) {
+            showApiKeyDialog();
+            return;
+        }
+        try {
+            String key = SteamAccountStore.getApiKey(requireContext());
+            Toast.makeText(requireContext(), "Indexing the Steam catalogue. This is a one-time download.", Toast.LENGTH_LONG).show();
+            SteamStoreClient.syncFullCatalog(requireContext(), key, (count, complete, error) -> {
+                if (!isAdded()) return;
+                if (error != null) {
+                    Toast.makeText(requireContext(), "Catalogue sync stopped: " + error, Toast.LENGTH_LONG).show();
+                } else if (complete) {
+                    Toast.makeText(requireContext(), String.format(Locale.US, "Indexed %,d Steam apps.", count), Toast.LENGTH_LONG).show();
+                    if (pageContent != null) {
+                        removeDynamicContent();
+                        if ("My Games".equals(currentTab)) showOwnedLibrary();
+                        else showPcCatalog();
+                    }
+                }
+            });
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "Could not read the saved Steam key.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void beginCatalogList(String query) {
+        catalogQuery = query == null ? "" : query;
+        catalogOffset = 0;
+        catalogHasMore = true;
+        catalogLoading = false;
+        catalogList = new LinearLayout(requireContext());
+        catalogList.setOrientation(LinearLayout.VERTICAL);
+        pageContent.addView(catalogList, new LinearLayout.LayoutParams(-1, -2));
+        loadMoreCatalog();
+    }
+
+    private void loadMoreCatalog() {
+        if (!isAdded() || catalogList == null || catalogLoading || !catalogHasMore) return;
+        catalogLoading = true;
+        final LinearLayout target = catalogList;
+        final String query = catalogQuery;
+        final int offset = catalogOffset;
+        CATALOG_IO.execute(() -> {
+            List<SteamStoreClient.Game> batch;
             try {
-                String key = apiKey.getText().toString().trim();
-                if (key.isEmpty()) key = SteamAccountStore.getApiKey(requireContext());
-                if (key.isEmpty()) {
-                    status.setText("Enter your Steam Web API key first.");
+                batch = SteamStoreClient.searchLocalCatalog(requireContext().getApplicationContext(), query, offset, 36);
+            } catch (Exception e) {
+                batch = new ArrayList<>();
+            }
+            final List<SteamStoreClient.Game> result = batch;
+            handler.post(() -> {
+                if (!isAdded() || catalogList != target) return;
+                catalogLoading = false;
+                if (result.isEmpty()) {
+                    catalogHasMore = false;
+                    if (catalogOffset == 0) {
+                        TextView empty = text("No games matched this search.", 13, MUTED, false);
+                        empty.setPadding(dp(8), dp(20), dp(8), dp(20));
+                        target.addView(empty);
+                    } else {
+                        TextView end = text("You have reached the end of the catalogue.", 11, MUTED, false);
+                        end.setGravity(Gravity.CENTER);
+                        end.setPadding(dp(8), dp(16), dp(8), dp(20));
+                        target.addView(end);
+                    }
                     return;
                 }
-                String savedKey = key;
-                status.setText("Indexing Steam's public PC game catalogue...");
-                SteamStoreClient.syncFullCatalog(requireContext(), savedKey, (count, complete, error) -> {
-                    status.setText(error != null ? "Catalogue sync stopped: " + error
-                            : complete ? String.format(Locale.US, "Catalogue index complete: %,d apps.", count)
-                            : String.format(Locale.US, "Indexed %,d apps...", count));
-                });
-            } catch (Exception e) {
-                status.setText("Could not read the saved Steam key. Re-enter it.");
-            }
+                appendCatalogGrid(result);
+                catalogOffset += result.size();
+                catalogHasMore = result.size() == 36;
+                if (!catalogHasMore) {
+                    TextView end = text(String.format(Locale.US, "Showing all %,d matching games.", catalogOffset), 11, MUTED, false);
+                    end.setGravity(Gravity.CENTER);
+                    end.setPadding(dp(8), dp(16), dp(8), dp(20));
+                    target.addView(end);
+                }
+            });
         });
+    }
 
-        showDialog(dialog, root, true);
+    private void appendCatalogGrid(List<SteamStoreClient.Game> games) {
+        if (catalogList == null || games == null || games.isEmpty()) return;
+        LinearLayout grid = new LinearLayout(requireContext());
+        grid.setOrientation(LinearLayout.VERTICAL);
+        int columns = getResources().getConfiguration().screenWidthDp >= 700 ? 3 : 2;
+        for (int i = 0; i < games.size(); i += columns) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for (int j = 0; j < columns && i + j < games.size(); j++) {
+                View card = gameCard(games.get(i + j));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(174), 1);
+                lp.rightMargin = dp(8);
+                lp.bottomMargin = dp(10);
+                row.addView(card, lp);
+            }
+            grid.addView(row);
+        }
+        catalogList.addView(grid);
     }
 
     private void addHeroCard(SteamStoreClient.Game game) {
