@@ -57,20 +57,27 @@ import java.util.Set;
  * Steam password and does not distribute or embed a shared API key.
  */
 public class GameLibraryFragment extends Fragment {
-    private static final int BG = Color.rgb(12, 15, 22);
-    private static final int SURFACE = Color.rgb(35, 40, 51);
-    private static final int TEXT = Color.rgb(246, 248, 252);
-    private static final int MUTED = Color.rgb(174, 184, 198);
-    private static final int ACCENT = Color.rgb(47, 155, 238);
-    private static final int GLASS = 0x88434A59;
+    private static final int BG = Color.rgb(244, 247, 252);
+    private static final int SURFACE = Color.rgb(255, 255, 255);
+    private static final int TEXT = Color.rgb(31, 43, 61);
+    private static final int MUTED = Color.rgb(101, 117, 139);
+    private static final int ACCENT = Color.rgb(45, 116, 190);
+    private static final int GLASS = 0xDFFFFFFF;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private static final java.util.concurrent.ExecutorService CATALOG_IO = java.util.concurrent.Executors.newSingleThreadExecutor();
     private final List<SteamStoreClient.Game> featured = new ArrayList<>();
     private final List<SteamStoreClient.Game> ownedGames = new ArrayList<>();
     private final Set<Integer> ownedIds = new HashSet<>();
     private LinearLayout pageContent;
     private TextView accountStatus;
     private EditText searchField;
+    private ScrollView libraryScroll;
+    private LinearLayout catalogList;
+    private boolean catalogLoading = false;
+    private boolean catalogHasMore = false;
+    private int catalogOffset = 0;
+    private String catalogQuery = "";
     private String currentTab = "Recommended";
     private String currentQuery = "";
     private boolean loadingFeatured = false;
@@ -85,7 +92,13 @@ public class GameLibraryFragment extends Fragment {
         ScrollView scroll = new ScrollView(requireContext());
         scroll.setFillViewport(true);
         scroll.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(20, 25, 37), Color.rgb(15, 20, 30), Color.rgb(27, 23, 34)}));
+                new int[]{Color.rgb(250, 252, 255), Color.rgb(236, 243, 251), Color.rgb(245, 241, 250)}));
+        libraryScroll = scroll;
+        scroll.setOnScrollChangeListener((View v, int x, int y, int oldX, int oldY) -> {
+            if (catalogList == null || !catalogHasMore || catalogLoading) return;
+            View child = scroll.getChildAt(0);
+            if (child != null && child.getBottom() - scroll.getHeight() - y < dp(280)) loadMoreCatalog();
+        });
 
         pageContent = new LinearLayout(requireContext());
         pageContent.setOrientation(LinearLayout.VERTICAL);
@@ -107,6 +120,9 @@ public class GameLibraryFragment extends Fragment {
         handler.removeCallbacks(searchRunnable);
         pageContent = null;
         searchField = null;
+        libraryScroll = null;
+        catalogList = null;
+        catalogLoading = false;
         accountStatus = null;
         super.onDestroyView();
     }
