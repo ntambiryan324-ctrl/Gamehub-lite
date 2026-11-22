@@ -62,7 +62,7 @@ public class PocketWinHomeFragment extends Fragment {
         TextView heroBody=txt(c,"Download a Wine/Proton runtime and create a container. Each container keeps its own Windows C: drive and installed programs.",13,0xFFC5D7EA,false);
         heroBody.setLineSpacing(dp(c,4),1f);
         LinearLayout.LayoutParams hbp=new LinearLayout.LayoutParams(-1,-2);hbp.topMargin=dp(c,7);hero.addView(heroBody,hbp);
-        TextView create=action(c,"＋","Create a container","Set up a new Windows environment",true);
+        LinearLayout create=action(c,"＋","Create a container","Set up a new Windows environment",true);
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(c,18);hero.addView(create,cp);
         create.setOnClickListener(v->{if(getActivity() instanceof MainActivity)((MainActivity)getActivity()).openNewContainer();});
         page.addView(hero);
@@ -78,10 +78,10 @@ public class PocketWinHomeFragment extends Fragment {
         environmentStateView=txt(c,"Checking local runtime…",12,0xFFB9D3EF,false);
         LinearLayout.LayoutParams esp=new LinearLayout.LayoutParams(-1,-2);esp.topMargin=dp(c,12);page.addView(environmentStateView,esp);
 
-        TextView components=action(c,"↓","Download components","Wine, Proton, Box64 and graphics layers",false);
+        LinearLayout components=action(c,"↓","Download components","Wine, Proton, Box64 and graphics layers",false);
         LinearLayout.LayoutParams cop=new LinearLayout.LayoutParams(-1,-2);cop.topMargin=dp(c,21);page.addView(components,cop);
         components.setOnClickListener(v->{if(getActivity() instanceof MainActivity)((MainActivity)getActivity()).navigateToSection(R.id.main_menu_contents);});
-        TextView containers=action(c,"▦","My containers","Open, edit, duplicate or remove desktops",false);
+        LinearLayout containers=action(c,"▦","My containers","Open, edit, duplicate or remove desktops",false);
         LinearLayout.LayoutParams conp=new LinearLayout.LayoutParams(-1,-2);conp.topMargin=dp(c,10);page.addView(containers,conp);
         containers.setOnClickListener(v->{if(getActivity() instanceof MainActivity)((MainActivity)getActivity()).navigateToSection(R.id.main_menu_containers);});
 
@@ -120,7 +120,7 @@ public class PocketWinHomeFragment extends Fragment {
         TextView cap=txt(c,caption,9,0xFF9FB9D5,true);cap.setLetterSpacing(.1f);col.addView(cap);
         TextView value=txt(c,"—",27,Color.WHITE,true);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(c,5);col.addView(value,p);return col;
     }
-    private TextView action(Context c,String glyph,String title,String detail,boolean primary){
+    private LinearLayout action(Context c,String glyph,String title,String detail,boolean primary){
         LinearLayout row=new LinearLayout(c);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(c,15),dp(c,14),dp(c,15),dp(c,14));
         row.setBackground(pill(primary?0xFF3C86D8:0x1FFFFFFF,primary?0xFF7AB8F2:0x3FFFFFFF,dp(c,16)));
