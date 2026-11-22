@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavigationView navigationView = findViewById(R.id.NavigationView);
         navigationView.setNavigationItemSelectedListener(this);
 
-        androidx.appcompat.widget.Toolbar toolbar/ = findViewById(R.id.Toolbar);
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.Toolbar);
         setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
         int accentColor = ThemeManager.getAccentColor(this);
