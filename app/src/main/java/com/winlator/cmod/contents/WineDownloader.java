@@ -138,8 +138,8 @@ public class WineDownloader {
         String defaultTitle = "Proton 10.0-4 arm64ec (" + (isModern ? "SDK 35" : "SDK 28") + ")";
 
         AlertDialog.Builder builder = new AlertDialog.Builder(activity)
-            .setTitle("Welcome to Winlator Mali")
-            .setMessage("No Wine or Proton runtimes are installed yet.\n\nTo run Windows games with highest performance, download the official Proton 10 runtime:")
+            .setTitle("Welcome to PocketWin")
+            .setMessage("No Wine or Proton runtimes are installed yet.\n\nTo run compatible Windows applications, download a Wine or Proton runtime:")
             .setPositiveButton("Download " + defaultTitle, (dialog, which) -> {
                 sActiveWelcomeDialog = null;
                 showDownloadDialog(activity, null);
