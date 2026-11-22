@@ -156,6 +156,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     public static String NOTIFICATION_CHANNEL_ID = "Winlator";
     public static int NOTIFICATION_ID = -1;
     private XServerView xServerView;
+    private PocketWinDesktopOverlay desktopOverlay;
     private InputControlsView inputControlsView;
     private TouchpadView touchpadView;
     private XEnvironment environment;
@@ -996,6 +997,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     protected void onDestroy() {
         // Log Manager: close this session's log and dump the app's logcat next to it.
         com.winlator.cmod.logs.SessionLog.stop(this, true);
+        if (desktopOverlay != null) desktopOverlay.destroy();
         if (usbRumbleClaimed) {
             usbRumbleClaimed = false;
             com.winlator.cmod.inputcontrols.DirectGamepHidRumbleEngine.getInstance(this).releaseClaim();
@@ -1033,6 +1035,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
     @Override
     public void onBackPressed() {
+        if (desktopOverlay != null && desktopOverlay.handleBack()) return;
         if (inGameControlsEditor != null && inGameControlsEditor.isOpen()) {
             inGameControlsEditor.handleBack();
             return;
@@ -1724,6 +1727,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             String simTouchScreen = shortcut.getExtra("simTouchScreen");
             touchpadView.setSimTouchScreen(simTouchScreen.equals("1"));
         }
+
+        desktopOverlay = new PocketWinDesktopOverlay(this);
+        rootView.addView(desktopOverlay, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         AppUtils.observeSoftKeyboardVisibility(drawerLayout, (cond) -> xServerView.setScreenOffsetYRelativeToCursor(cond));
     }
@@ -2744,12 +2751,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             if (envVars.has("EXTRA_EXEC_ARGS")) {
                 args += " " + envVars.get("EXTRA_EXEC_ARGS");
                 envVars.remove("EXTRA_EXEC_ARGS"); // Remove the key after use
-            } else {
-                args += "\"wfm.exe\"";
             }
         }
-        // Construct the final command
-        String command = "winhandler.exe " + args;
+        // Leave the desktop visible for normal containers; PocketWin draws its desktop controls above Wine.
+        String command = args.trim().isEmpty() ? "" : "winhandler.exe " + args.trim();
 
         return command;
     }
@@ -2760,7 +2765,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             filename = FileUtils.getName(shortcut.path);
         }
         else
-            filename = "wfm.exe";
+            filename = "Windows Desktop";
         return filename;
     }
 
