@@ -238,7 +238,7 @@ public class ContainerManager {
     }
 
     public String getNextDefaultContainerName() {
-        String baseName = context.getString(R.string.container) + "-";
+        String baseName = "Windows Desktop ";
         int number = 1;
         while (true) {
             String name = baseName + number;
