@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         applyDrawerStyling(navigationView);
 
-        // Create Winlator folder if not present
+        // Create PocketWin export folder if not present
         File winlatorDir = new File(SettingsFragment.DEFAULT_WINLATOR_PATH);
         if (!winlatorDir.exists())
             winlatorDir.mkdirs();
@@ -203,7 +203,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (!ImageFsInstaller.installIfNeeded(this)) {
                 com.winlator.cmod.contents.WineDownloader.checkFirstLaunchWineSetup(this);
             }
-        }
         }
     }
 
