@@ -93,8 +93,8 @@ android {
         // We’re preserving Winlator’s request to keep targetSdkVersion at 28
         targetSdkVersion 28
 
-        versionCode 24
-        versionName "1.0.0 PocketWin"
+        versionCode 25
+        versionName "1.0.1 PocketWin"
 
         // External native build from Winlator
         externalNativeBuild {

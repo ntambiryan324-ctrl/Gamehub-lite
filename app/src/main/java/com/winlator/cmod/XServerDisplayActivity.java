@@ -1403,9 +1403,12 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
 
         String desktopTheme = container.getDesktopTheme();
-        if (!(desktopTheme+","+xServer.screenInfo).equals(container.getExtra("desktopTheme"))) {
+        // Include a wallpaper revision in this cache key so existing containers regenerate the
+        // bundled PocketWin wallpaper after upgrading from an earlier build.
+        String desktopThemeKey = desktopTheme+","+xServer.screenInfo+",pocketwin-wallpaper-2";
+        if (!desktopThemeKey.equals(container.getExtra("desktopTheme"))) {
             WineThemeManager.apply(this, new WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo);
-            container.putExtra("desktopTheme", desktopTheme+","+xServer.screenInfo);
+            container.putExtra("desktopTheme", desktopThemeKey);
             containerDataChanged = true;
         }
 
