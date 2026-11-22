@@ -2,13 +2,13 @@ package com.winlator.cmod.core;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.LinearGradient;
+import android.graphics.Path;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.util.DisplayMetrics;
 
 import com.winlator.cmod.R;
 import com.winlator.cmod.xenvironment.ImageFs;
@@ -121,40 +121,81 @@ public abstract class WineThemeManager {
     }
 
     private static void createWallpaperBMPFile(Context context, ScreenInfo screenInfo) {
-        final int outputHeight = screenInfo.height;
-        int outputWidth = screenInfo.width;
-
-        Bitmap outputBitmap = Bitmap.createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Canvas canvas = new Canvas(outputBitmap);
-
-        File userWallpaperFile = getUserWallpaperFile(context);
-        if (userWallpaperFile.isFile()) {
-            Bitmap image = BitmapFactory.decodeFile(userWallpaperFile.getPath());
-            Rect srcRect = new Rect(0, 0, image.getWidth(), image.getHeight());
-            Rect dstRect = new Rect(0, 0, outputWidth, outputHeight);
-            canvas.drawBitmap(image, srcRect, dstRect, paint);
-        }
-        else {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inTargetDensity = DisplayMetrics.DENSITY_HIGH;
-            Bitmap wallpaperBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.wallpaper, options);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0xff01579b);
-            canvas.drawRect(0, 0, outputWidth, outputHeight * 0.5f, paint);
-            paint.setColor(0xff0277bd);
-            canvas.drawRect(0, outputHeight * 0.5f, outputWidth, outputHeight, paint);
-
-            float targetSize = outputHeight * (320.0f / 480.0f);
-            float centerX = (outputWidth - targetSize) * 0.5f;
-            float centerY = (outputHeight - targetSize) * 0.5f;
-            Rect srcRect = new Rect(0, 0, wallpaperBitmap.getWidth(), wallpaperBitmap.getHeight());
-            RectF dstRect = new RectF(centerX, centerY, centerX + targetSize, centerY + targetSize);
-            canvas.drawBitmap(wallpaperBitmap, srcRect, dstRect, paint);
-        }
+        int w = Math.max(1, screenInfo.width);
+        int h = Math.max(1, screenInfo.height);
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        File customFile = getUserWallpaperFile(context);
+        if (customFile.isFile()) {
+            Bitmap custom = android.graphics.BitmapFactory.decodeFile(customFile.getAbsolutePath());
+            if (custom != null) {
+                canvas.drawBitmap(custom, null, new android.graphics.Rect(0, 0, w, h),
+                        new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+                custom.recycle();
+            } else drawPocketWinBloom(canvas, w, h);
+        } else drawPocketWinBloom(canvas, w, h);
 
         ImageFs imageFs = ImageFs.find(context);
-        MSBitmap.create(outputBitmap, new File(imageFs.getRootDir(), ImageFs.CACHE_PATH+"/wallpaper.bmp"));
+        MSBitmap.create(bitmap, new File(imageFs.getRootDir(), ImageFs.CACHE_PATH+"/wallpaper.bmp"));
+        bitmap.recycle();
+    }
+
+    private static void drawPocketWinBloom(Canvas canvas, int w, int h) {
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setShader(new LinearGradient(0, 0, w, h,
+                new int[]{0xFF06152E, 0xFF0B3E78, 0xFF07172F}, null, Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setShader(new RadialGradient(w * 0.52f, h * 0.48f, Math.max(w, h) * 0.76f,
+                new int[]{0xFF3BA5F3, 0xFF1769BE, 0x00051A38}, new float[]{0f, .57f, 1f}, Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, paint);
+
+        float cx = w * .52f, cy = h * .53f;
+        Path upper = new Path();
+        upper.moveTo(cx, cy);
+        upper.cubicTo(w*.30f,h*.25f,w*.36f,h*.06f,w*.59f,h*.13f);
+        upper.cubicTo(w*.79f,h*.20f,w*.78f,h*.40f,cx,cy);
+        paint.setShader(new LinearGradient(w*.35f,h*.10f,w*.76f,h*.54f,
+                new int[]{0xFFB1E6FF,0xFF4EA9F2,0xFF1553B4},null,Shader.TileMode.CLAMP));
+        canvas.drawPath(upper,paint);
+
+        Path right = new Path();
+        right.moveTo(cx,cy);
+        right.cubicTo(w*.72f,h*.29f,w*.99f,h*.36f,w*.91f,h*.62f);
+        right.cubicTo(w*.85f,h*.82f,w*.66f,h*.78f,cx,cy);
+        paint.setShader(new LinearGradient(w*.50f,h*.30f,w*.98f,h*.78f,
+                new int[]{0xFF80CFFF,0xFF237EDB,0xFF0A3D91},null,Shader.TileMode.CLAMP));
+        canvas.drawPath(right,paint);
+
+        Path lower = new Path();
+        lower.moveTo(cx,cy);
+        lower.cubicTo(w*.78f,h*.74f,w*.67f,h*1.02f,w*.42f,h*.91f);
+        lower.cubicTo(w*.20f,h*.82f,w*.30f,h*.61f,cx,cy);
+        paint.setShader(new LinearGradient(w*.30f,h*.64f,w*.73f,h*.97f,
+                new int[]{0xFF58B4FA,0xFF1557B2,0xFF062D70},null,Shader.TileMode.CLAMP));
+        canvas.drawPath(lower,paint);
+
+        Path left = new Path();
+        left.moveTo(cx,cy);
+        left.cubicTo(w*.32f,h*.76f,w*.07f,h*.63f,w*.16f,h*.39f);
+        left.cubicTo(w*.23f,h*.19f,w*.42f,h*.25f,cx,cy);
+        paint.setShader(new LinearGradient(w*.12f,h*.28f,w*.55f,h*.73f,
+                new int[]{0xFFB2E7FF,0xFF4099EA,0xFF0A408E},null,Shader.TileMode.CLAMP));
+        canvas.drawPath(left,paint);
+
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(2f,w*.0035f));
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setColor(0x8FE3F7FF);
+        Path highlight = new Path();
+        highlight.moveTo(w*.23f,h*.34f);
+        highlight.cubicTo(w*.34f,h*.10f,w*.55f,h*.13f,w*.67f,h*.24f);
+        canvas.drawPath(highlight,paint);
+        paint.setColor(0x669EDBFF);
+        Path edge = new Path();
+        edge.moveTo(w*.69f,h*.35f);
+        edge.cubicTo(w*.91f,h*.36f,w*.93f,h*.56f,w*.82f,h*.68f);
+        canvas.drawPath(edge,paint);
     }
 
     public static File getUserWallpaperFile(Context context) {

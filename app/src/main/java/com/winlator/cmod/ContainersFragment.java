@@ -78,7 +78,7 @@ public class ContainersFragment extends Fragment {
         loadContainersList();
         androidx.appcompat.app.ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setTitle(R.string.containers);
+            actionBar.setTitle("My Containers");
         }
 
         checkFirstLaunchWineSetup();
@@ -106,7 +106,7 @@ public class ContainersFragment extends Fragment {
         ArrayList<Container> containers = manager.getContainers();
         recyclerView.setAdapter(new ContainersAdapter(containers));
         if (containers.isEmpty()) {
-            emptyTextView.setText("No containers yet\n\nTap + above to create one");
+            emptyTextView.setText("No containers yet\n\nCreate your first Windows workspace");
             emptyTextView.setTextSize(16);
             if (getContext() != null) emptyTextView.setTextColor((ThemeManager.getOnSurfaceTextColor(getContext()) & 0x00FFFFFF) | 0xB3000000);
             emptyTextView.setVisibility(View.VISIBLE);

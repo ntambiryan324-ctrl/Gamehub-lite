@@ -47,6 +47,7 @@ import com.winlator.cmod.core.ImageUtils;
 import com.winlator.cmod.core.PreloaderDialog;
 import com.winlator.cmod.container.ContainerManager;
 import com.winlator.cmod.core.WineThemeManager;
+import com.winlator.cmod.xenvironment.ImageFs;
 import com.winlator.cmod.xenvironment.ImageFsInstaller;
 
 import java.io.File;
@@ -88,14 +89,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavigationView navigationView = findViewById(R.id.NavigationView);
         navigationView.setNavigationItemSelectedListener(this);
 
-        boolean forceShowAdreno = sharedPreferences.getBoolean("show_adrenotools_unsupported", false);
-        if (!forceShowAdreno && !com.winlator.cmod.core.GPUInformation.isAdrenoGPU(this)) {
-            navigationView.getMenu().findItem(R.id.main_menu_adrenotools_gpu_drivers).setVisible(false);
-        } else {
-            navigationView.getMenu().findItem(R.id.main_menu_adrenotools_gpu_drivers).setVisible(true);
-        }
-
-        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.Toolbar);
+        androidx.appcompat.widget.Toolbar toolbar/ = findViewById(R.id.Toolbar);
         setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
         int accentColor = ThemeManager.getAccentColor(this);
@@ -133,8 +127,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             onNavigationItemSelected(navigationView.getMenu().findItem(R.id.main_menu_input_controls));
             navigationView.setCheckedItem(R.id.main_menu_input_controls);
         } else {
-            int selectedMenuItemId = SteamOpenIdHelper.isCallback(intent) ? R.id.main_menu_game_library : intent.getIntExtra("selected_menu_item_id", 0);
-            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : R.id.main_menu_containers;
+            int selectedMenuItemId = intent.getIntExtra("selected_menu_item_id", 0);
+            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : R.id.main_menu_home;
 
             setActionBarHomeIcon(R.drawable.icon_action_bar_menu);
             onNavigationItemSelected(navigationView.getMenu().findItem(menuItemId));
@@ -158,36 +152,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
         }
-        handleSteamOpenIdCallback(getIntent());
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        handleSteamOpenIdCallback(intent);
-    }
-
-    private void handleSteamOpenIdCallback(Intent intent) {
-        if (!SteamOpenIdHelper.isCallback(intent)) return;
-        SteamOpenIdHelper.handleCallback(this, intent, (steamId, error) -> {
-            if (isFinishing() || isDestroyed()) return;
-            if (error != null) {
-                Toast.makeText(this, "Steam sign-in failed: " + error, Toast.LENGTH_LONG).show();
-                return;
-            }
-            try {
-                SteamAccountStore.saveSteamId(this, steamId);
-                Toast.makeText(this, "Steam account linked successfully.", Toast.LENGTH_LONG).show();
-                Fragment active = getSupportFragmentManager().findFragmentById(R.id.FLFragmentContainer);
-                if (active instanceof GameLibraryFragment) {
-                    ((GameLibraryFragment) active).onSteamAccountLinked();
-                }
-            } catch (Exception e) {
-                Toast.makeText(this, "Could not save Steam account: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
-    }
 
     private void showAllFilesAccessDialog() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -238,21 +204,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 com.winlator.cmod.contents.WineDownloader.checkFirstLaunchWineSetup(this);
             }
         }
-        NavigationView navigationView = findViewById(R.id.NavigationView);
-        if (navigationView != null) {
-            boolean forceShowAdreno = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("show_adrenotools_unsupported", false);
-            MenuItem item = navigationView.getMenu().findItem(R.id.main_menu_adrenotools_gpu_drivers);
-            if (item != null) {
-                item.setVisible(forceShowAdreno || com.winlator.cmod.core.GPUInformation.isAdrenoGPU(this));
-            }
         }
     }
 
     // Main sections L1/R1 cycle through, in drawer order (About is a dialog, not a section).
     private static final int[] CONTROLLER_SECTIONS = {
-        R.id.main_menu_shortcuts, R.id.main_menu_game_library, R.id.main_menu_containers, R.id.main_menu_input_controls,
-        R.id.main_menu_contents, R.id.main_menu_community_configs, R.id.main_menu_file_manager,
-        R.id.main_menu_manage_graphics_drivers, R.id.main_menu_adrenotools_gpu_drivers, R.id.main_menu_settings
+        R.id.main_menu_home, R.id.main_menu_containers, R.id.main_menu_contents, R.id.main_menu_settings
     };
 
     @Override
@@ -413,23 +370,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment currentFragment = fragmentManager.findFragmentById(R.id.FLFragmentContainer);
-
         if (currentFragment instanceof FileManagerFragment && getOnBackPressedDispatcher().hasEnabledCallbacks()) {
             super.onBackPressed();
             return;
         }
-
-        List<Fragment> fragments = fragmentManager.getFragments();
-        for (Fragment fragment : fragments) {
-            if (fragment instanceof ContainersFragment && fragment.isVisible()) {
-                finish();
-                return;
-            }
-        }
-        if (!editInputControls)
-            show(new ContainersFragment(), true);  // Pass `true` to trigger the reverse animation
-        else
+        if (editInputControls) {
             super.onBackPressed();
+            return;
+        }
+        if (fragmentManager.getBackStackEntryCount() > 0) {
+            fragmentManager.popBackStack();
+            return;
+        }
+        if (currentFragment instanceof PocketWinHomeFragment) finish();
+        else show(new PocketWinHomeFragment(), true);
     }
 
     private boolean checkStoragePermissions() {
@@ -496,6 +450,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    public void navigateToSection(int menuItemId) {
+        NavigationView navigationView = findViewById(R.id.NavigationView);
+        if (navigationView == null) return;
+        MenuItem item = navigationView.getMenu().findItem(menuItemId);
+        if (item != null && item.isVisible()) onNavigationItemSelected(item);
+    }
+
+    public void openNewContainer() {
+        if (!ImageFs.find(this).isValid()) {
+            ImageFsInstaller.installIfNeeded(this);
+            Toast.makeText(this, "Preparing the Windows runtime. Try again when setup finishes.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        List<String> installed = com.winlator.cmod.contents.WineDownloader.getInstalledWineVersions(this);
+        Runnable openEditor = () -> {
+            FragmentManager fm = getSupportFragmentManager();
+            fm.beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_up, R.anim.slide_out_down, R.anim.slide_in_down, R.anim.slide_out_up)
+                .addToBackStack(null)
+                .replace(R.id.FLFragmentContainer, new ContainerDetailFragment())
+                .commit();
+        };
+        if (installed.isEmpty()) {
+            com.winlator.cmod.contents.WineDownloader.showDownloadDialog(this, openEditor);
+        } else {
+            openEditor.run();
+        }
+    }
+
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         FragmentManager fragmentManager = getSupportFragmentManager();
@@ -504,6 +487,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         switch (item.getItemId()) {
+            case R.id.main_menu_home:
+                show(new PocketWinHomeFragment(), false);
+                break;
             case R.id.main_menu_shortcuts:
                 show(new ShortcutsFragment(), false);  // Forward animation
                 break;
