@@ -69,12 +69,31 @@ jobs:
             "cmake;3.22.1" \
             "ndk;29.0.14206865"
 
+      - name: Install MinGW-w64 for the Windows desktop shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-mingw-w64-x86-64
+
+      - name: Build the Win32 desktop shell
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/assets
+          x86_64-w64-mingw32-g++ -O2 -std=c++17 -municode -mwindows \
+            app/src/main/windows/pocketwin_shell.cpp \
+            -o app/src/main/assets/pocketwin_shell.exe \
+            -static -lshell32 -lgdi32 -luser32 -lcomctl32
+          file app/src/main/assets/pocketwin_shell.exe
+
       - name: Verify required source and submodule files
         run: |
           set -euo pipefail
           test -f app/src/main/AndroidManifest.xml
           test -f app/src/main/cpp/CMakeLists.txt
           test -f app/src/main/assets/container_pattern_common.tzst
+          test -f app/src/main/assets/chrome_x64.msi
+          test -f app/src/main/assets/pocketwin_shell.exe
+          test "$(stat -c%s app/src/main/assets/chrome_x64.msi)" -gt 30000000
+          file app/src/main/assets/pocketwin_shell.exe | grep -q "PE32+"
           test -f app/src/main/cpp/gladiorenderer/CMakeLists.txt
           test -f gradle/wrapper/gradle-wrapper.jar
           chmod +x ./gradlew
@@ -130,6 +149,34 @@ jobs:
             }
             unzip -Z1 "$apk" | grep -q '^assets/imagefs\.tzst$' || {
               echo "Required Windows root filesystem image is missing from $apk"
+              exit 1
+            }
+            unzip -Z1 "$apk" | grep -q '^assets/chrome_x64\.msi
+          done
+
+      - name: Publish APK artifacts after build and APK validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ || {
+              echo "Bundled Windows Chrome installer is missing from $apk"
+              exit 1
+            }
+            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_shell\.exe
+          done
+
+      - name: Publish APK artifacts after build and APK validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ || {
+              echo "Bundled Windows desktop shell is missing from $apk"
               exit 1
             }
             echo "APK structure OK: $PACKAGE / $ACTIVITY"

@@ -514,10 +514,11 @@ public class Container {
                 case "name" :
                     setName(data.getString(key));
                     break;
-                case "screenSize" :
+                case "screenSize" : {
                     String savedScreenSize = data.getString(key);
                     setScreenSize("1280x720".equals(savedScreenSize) ? DEFAULT_SCREEN_SIZE : savedScreenSize);
                     break;
+                }
                 case "envVars" :
                     setEnvVars(data.getString(key));
                     break;

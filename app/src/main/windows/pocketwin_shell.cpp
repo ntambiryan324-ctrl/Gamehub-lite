@@ -7,12 +7,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cwctype>
 
 struct AppEntry { std::wstring title; std::wstring path; };
 static std::vector<AppEntry> gApps;
-static HWND gTaskbar=nullptr, gPanel=nullptr, gSearch=nullptr;
-static bool gAllApps=false, gChromeInstallStarted=false;
-static WNDPROC gOldEditProc=nullptr;
+static HWND gTaskbar=nullptr, gPanel=nullptr;
+static bool gAllApps=false, gChromeInstallStarted=false, gSearchFocused=true;
+static std::wstring gSearchText;
 static const wchar_t* CHROME=L"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 static const wchar_t* CHROME_ALT=L"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
 static const wchar_t* CHROME_MSI=L"C:\\windows\\temp\\pocketwin-chrome.msi";
@@ -57,7 +58,7 @@ static void OpenChromeUrl(const std::wstring& input) {
     std::wstring query=input;
     if(query.empty()) query=L"https://www.google.com/";
     std::wstring lower=query;
-    std::transform(lower.begin(),lower.end(),lower.begin(),towlower);
+    std::transform(lower.begin(),lower.end(),lower.begin(),[](wchar_t c){ return (wchar_t)towlower(c); });
     std::wstring url;
     if(lower.rfind(L"https://",0)==0||lower.rfind(L"http://",0)==0) url=query;
     else if(query.find(L' ')==std::wstring::npos && query.find(L'.')!=std::wstring::npos) url=L"https://"+query;
@@ -103,7 +104,9 @@ static void ShowPanel(bool show) {
         gAllApps=false; LoadApps(); InvalidateRect(gPanel,nullptr,TRUE);
         ShowWindow(gPanel,SW_SHOWNOACTIVATE);
         SetWindowPos(gPanel,HWND_TOPMOST,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
-        if(gSearch) SetFocus(gSearch);
+        SetForegroundWindow(gPanel);
+        SetFocus(gPanel);
+        gSearchFocused=true;
     } else ShowWindow(gPanel,SW_HIDE);
 }
 static void LaunchIndex(int i) {
@@ -147,7 +150,7 @@ static void DrawPanel(HDC dc) {
         }
     } else {
         RoundBox(dc,20,56,r.right-40,42,RGB(41,61,89),RGB(88,124,162),10);
-        Text(dc,L"Search the web or your apps",34,57,r.right-68,40,12,RGB(178,202,227),false);
+        Text(dc,gSearchText.empty()?L"Search the web or your apps":gSearchText.c_str(),34,57,r.right-68,40,12,RGB(218,232,248),false);
         Text(dc,L"Recommended",24,108,320,26,14,RGB(238,246,255),true);
         const int cols=3,tileW=(r.right-60)/cols,tileH=68;
         for(int i=0;i<(int)gApps.size()&&i<9;i++) {
@@ -158,18 +161,18 @@ static void DrawPanel(HDC dc) {
         Text(dc,L"Power",r.right-96,r.bottom-48,70,30,11,RGB(240,247,255),true,DT_CENTER|DT_VCENTER);
     }
 }
-static LRESULT CALLBACK EditProc(HWND h,UINT m,WPARAM w,LPARAM l) {
-    if(m==WM_KEYDOWN&&w==VK_RETURN) {
-        wchar_t value[512]={}; GetWindowTextW(h,value,511); OpenChromeUrl(value); return 0;
-    }
-    return CallWindowProcW(gOldEditProc,h,m,w,l);
-}
 static LRESULT CALLBACK PanelProc(HWND h,UINT m,WPARAM w,LPARAM l) {
     switch(m) {
-        case WM_CREATE:
-            gSearch=CreateWindowExW(0,L"EDIT",L"",WS_CHILD|WS_VISIBLE|ES_AUTOHSCROLL,34,61,440,32,h,(HMENU)101,GetModuleHandleW(nullptr),nullptr);
-            gOldEditProc=(WNDPROC)SetWindowLongPtrW(gSearch,GWLP_WNDPROC,(LONG_PTR)EditProc);
-            return 0;
+        case WM_CREATE: return 0;
+        case WM_CHAR:
+            if(gSearchFocused) {
+                if(w==VK_RETURN) { OpenChromeUrl(gSearchText); gSearchText.clear(); InvalidateRect(h,nullptr,TRUE); return 0; }
+                if(w==VK_BACK) { if(!gSearchText.empty()) gSearchText.pop_back(); }
+                else if(w>=32) gSearchText.push_back((wchar_t)w);
+                InvalidateRect(h,nullptr,TRUE);
+                return 0;
+            }
+            break;
         case WM_PAINT: { PAINTSTRUCT ps; HDC dc=BeginPaint(h,&ps); DrawPanel(dc); EndPaint(h,&ps); return 0; }
         case WM_LBUTTONUP: {
             int x=GET_X_LPARAM(l),y=GET_Y_LPARAM(l); RECT r; GetClientRect(h,&r);
@@ -181,7 +184,7 @@ static LRESULT CALLBACK PanelProc(HWND h,UINT m,WPARAM w,LPARAM l) {
                 if(col>=0&&col<3&&row>=0&&row<3) LaunchIndex(row*3+col);
                 return 0;
             }
-            if(!gAllApps&&y>=56&&y<=100) { SetFocus(gSearch); return 0; }
+            if(!gAllApps&&y>=56&&y<=100) { gSearchFocused=true; SetFocus(h); return 0; }
             if(y>r.bottom-55&&x>r.right-130) { ShowPanel(false); return 0; }
             return 0;
         }
