@@ -1,31 +1,37 @@
 # PocketWin
 
-PocketWin is an Android application that runs compatible Windows desktop software locally through a Wine/Proton and Box64 compatibility environment.
+PocketWin runs compatible Windows desktop software locally on Android through Wine/Proton and Box64.
 
-## Main workflow
+## Desktop architecture
 
-1. Allow the initial Android system filesystem setup to finish.
-2. Open **Components** and download a Wine or Proton runtime. Optional components such as Box64, DXVK and VKD3D can be installed there when needed.
-3. Create a container. Each container has its own Wine prefix and virtual Windows C: drive.
-4. Launch the container. PocketWin overlays a Windows 11-inspired taskbar, Start menu and desktop shortcuts on the Wine desktop.
-5. Open Chrome from the desktop or taskbar. PocketWin can try installing the official Windows MSI under Wine, or use the built-in browser window with web search and popup-window support.
+The desktop controls are a native Windows x86-64 executable running inside the Wine virtual desktop. Its taskbar, Start panel, search box, launchers and app icons are Windows windows and receive Windows mouse events. App icons are extracted from the actual executable files. The previous Android-drawn overlay and Android WebView browser are removed.
 
-## Desktop and browser
+## Container setup
 
-The default Wine desktop wallpaper is the Windows 11 wallpaper bundled with PocketWin. Start, Search, Chrome, Explorer and MQL5 Market shortcuts are available from the desktop/taskbar. The integrated browser uses Android System WebView (Chromium-based), supports ordinary website scripts, cookies, forms, popup windows and downloads. Downloads are saved to Android Downloads, which the container exposes as drive D:.
+1. Complete the initial Android root filesystem setup.
+2. Download a Wine or Proton runtime from **Components**.
+3. Create a container with its own Wine prefix and virtual Windows C: drive.
+4. On first desktop launch, PocketWin stages and starts Google's official Windows x64 Enterprise Chrome MSI from inside Wine. Chrome is intended to install into that container. This is a first-run setup action, not a separate manual installation step.
+5. Chrome downloads are stored inside the container's Windows Downloads folder.
 
-The Chrome installer option downloads Google's 64-bit Windows Enterprise MSI and attempts to launch it through Wine. This is experimental: the tablet uses an ARM Mali platform, and running the Windows Chrome build through Wine/Box64 is not guaranteed. The integrated browser remains available if Windows Chrome cannot run.
+The default virtual desktop resolution is 1340×800 for the Galaxy Tab A9. Old stock 1280×720 container settings are migrated on load. The uploaded Windows 11-style wallpaper is regenerated at that resolution.
 
-## Compatibility notes
+## Included Windows-compatible applications
 
-PocketWin is not Windows 11 and does not contain a Microsoft Windows license. The desktop surface, taskbar and Start menu are PocketWin's Windows-inspired UI layered over Wine, not Microsoft's Explorer shell. Compatible Windows programs still run inside Wine/Box64.
+The Start panel detects real executables and their real icons, including Chrome, File Explorer, Notepad, WordPad, Command Prompt, Task Manager, Control Panel, Registry Editor and Wine Configuration where those programs are present. No MetaTrader, MQL5 Market or trading software is preinstalled.
 
-MetaTrader 5's own Market popup is separate: MetaQuotes says newer Market/Signals/VPS interfaces use Edge WebView2, while MT5 under Wine continues to use legacy MSHTML. The PocketWin MQL5 Market shortcut opens the public Market in the integrated browser, but it does not replace MT5's internal MSHTML control.
+## Compatibility limits
+
+PocketWin is not Windows 11 and does not contain a Microsoft Windows license. The native shell is a Windows program running inside Wine; it is designed to provide a mouse-driven Windows-style desktop, not to claim a complete copy of Microsoft's Explorer shell. Windows programs are limited by Wine and Box64 compatibility.
+
+The bundled installer is the Windows x64 Chrome MSI. Chrome itself may still fail to run under Wine/Box64 on this ARM Mali device; the build can verify the installer is present but cannot prove Chrome runs on the tablet. If installed, it will be available from the Start panel. Microsoft Store/UWP apps are not a supported installation path in this Wine setup; ordinary EXE/MSI desktop installers are the target.
+
+MetaTrader 5 is not bundled. You can download the Windows MT5 installer yourself through Chrome. MetaQuotes documents that newer MT5 Market features use Edge WebView2; MT5 under Wine uses the legacy MSHTML engine, so the newer embedded Market features may not work even when the public MQL5 website opens in Chrome.
 
 ## Build
 
-The GitHub Actions workflow builds the ARM64 APK with Java 17, Android SDK 34, CMake 3.22.1 and NDK 29.0.14206865. Pushes to `main` trigger the standard build and publish the APK after archive, package, launcher and native-library checks.
+GitHub Actions installs MinGW-w64, compiles the Win32 shell, downloads the Chrome Enterprise MSI and Linux root filesystem, then builds and validates the ARM64 APK.
 
 ## Upstream and licensing
 
-This project is based on Winlator Mali / Bionic and incorporates Wine/Proton, Box64, Mesa and related open-source components. Review upstream notices and included license files when redistributing.
+This project is based on Winlator Mali/Bionic and uses Wine/Proton, Box64, Mesa and other open-source components. Review upstream notices and license files before redistribution.

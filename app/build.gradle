@@ -24,7 +24,8 @@ plugins {
 tasks.register("downloadAssets") {
     def assetDir = new File(project.rootDir, ["app","src","main","assets"].join(File.separator))
     def files = [
-        [name: "imagefs.tzst", url: "https://github.com/GunaCharanTeja/Winlator-Extras/releases/download/Sd/imagefs.tzst"]
+        [name: "imagefs.tzst", url: "https://github.com/GunaCharanTeja/Winlator-Extras/releases/download/Sd/imagefs.tzst"],
+        [name: "chrome_x64.msi", url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"]
     ]
 
     doLast {
@@ -93,8 +94,8 @@ android {
         // We’re preserving Winlator’s request to keep targetSdkVersion at 28
         targetSdkVersion 28
 
-        versionCode 25
-        versionName "1.0.1 PocketWin"
+        versionCode 26
+        versionName "1.0.2 PocketWin"
 
         // External native build from Winlator
         externalNativeBuild {

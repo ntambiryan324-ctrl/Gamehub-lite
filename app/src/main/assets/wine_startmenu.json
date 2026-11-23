@@ -2,8 +2,9 @@
     "name" : "Programs",
     "children" : [
         {
-            "name" : "Internet Explorer",
-            "path" : "C:/windows/system32/iexplore.exe"
+            "name" : "Google Chrome",
+            "path" : "C:/Program Files/Google/Chrome/Application/chrome.exe",
+            "iconLocation" : "C:/Program Files/Google/Chrome/Application/chrome.exe"
         },
         {
             "name" : "Notepad",
@@ -12,6 +13,14 @@
         {
             "name" : "Wordpad",
             "path" : "C:/windows/system32/write.exe"
+        },
+        {
+            "name" : "File Explorer",
+            "path" : "C:/windows/explorer.exe"
+        },
+        {
+            "name" : "Control Panel",
+            "path" : "C:/windows/system32/control.exe"
         }
         ]
     },

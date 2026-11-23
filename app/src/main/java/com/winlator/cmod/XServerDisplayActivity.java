@@ -156,7 +156,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     public static String NOTIFICATION_CHANNEL_ID = "Winlator";
     public static int NOTIFICATION_ID = -1;
     private XServerView xServerView;
-    private PocketWinDesktopOverlay desktopOverlay;
     private InputControlsView inputControlsView;
     private TouchpadView touchpadView;
     private XEnvironment environment;
@@ -357,7 +356,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         preloaderDialog = new PreloaderDialog(this);
 
-        cursorLock = preferences.getBoolean("cursor_lock", true);
+        cursorLock = preferences.getBoolean("cursor_lock", false);
 
         // Check for Dark Mode
         isDarkMode = preferences.getBoolean("dark_mode", true);
@@ -997,7 +996,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     protected void onDestroy() {
         // Log Manager: close this session's log and dump the app's logcat next to it.
         com.winlator.cmod.logs.SessionLog.stop(this, true);
-        if (desktopOverlay != null) desktopOverlay.destroy();
         if (usbRumbleClaimed) {
             usbRumbleClaimed = false;
             com.winlator.cmod.inputcontrols.DirectGamepHidRumbleEngine.getInstance(this).releaseClaim();
@@ -1035,7 +1033,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
     @Override
     public void onBackPressed() {
-        if (desktopOverlay != null && desktopOverlay.handleBack()) return;
         if (inGameControlsEditor != null && inGameControlsEditor.isOpen()) {
             inGameControlsEditor.handleBack();
             return;
@@ -1366,6 +1363,44 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
     }
 
+    private void stagePocketWinWindowsAssets() {
+        if (container == null || container.getRootDir() == null) return;
+
+        File driveC = new File(container.getRootDir(), ".wine/drive_c");
+        File shellDir = new File(driveC, "Program Files/PocketWin");
+        if (!shellDir.isDirectory()) shellDir.mkdirs();
+
+        File shellExe = new File(shellDir, "pocketwin_shell.exe");
+        File shellMarker = new File(shellDir, ".pocketwin_shell_version");
+        String shellVersion = "1.0.2";
+        if (!shellExe.isFile() || !shellMarker.isFile()
+                || !shellVersion.equals(FileUtils.readString(shellMarker).trim())) {
+            byte[] shellBytes = FileUtils.read(this, "pocketwin_shell.exe");
+            if (shellBytes != null && shellBytes.length > 10000
+                    && FileUtils.write(shellExe, shellBytes)) {
+                FileUtils.writeString(shellMarker, shellVersion);
+            } else {
+                Log.e("PocketWin", "The bundled Windows desktop shell could not be staged.");
+            }
+        }
+
+        File chrome64 = new File(driveC, "Program Files/Google/Chrome/Application/chrome.exe");
+        File chrome32 = new File(driveC, "Program Files (x86)/Google/Chrome/Application/chrome.exe");
+        File chromeMsi = new File(driveC, "windows/temp/pocketwin-chrome.msi");
+        if (!chrome64.isFile() && !chrome32.isFile() && !chromeMsi.isFile()) {
+            File tempDir = chromeMsi.getParentFile();
+            if (tempDir != null && !tempDir.isDirectory()) tempDir.mkdirs();
+            byte[] installer = FileUtils.read(this, "chrome_x64.msi");
+            if (installer != null && installer.length > 30000000L) {
+                if (!FileUtils.write(chromeMsi, installer)) {
+                    Log.e("PocketWin", "Could not copy the Chrome installer into the container.");
+                }
+            } else {
+                Log.e("PocketWin", "The bundled Chrome MSI is missing or too small.");
+            }
+        }
+    }
+
     private void setupWineSystemFiles() {
         String appVersion = String.valueOf(AppUtils.getVersionCode(this));
         String imgVersion = String.valueOf(imageFs.getVersion());
@@ -1405,13 +1440,14 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         String desktopTheme = container.getDesktopTheme();
         // Include a wallpaper revision in this cache key so existing containers regenerate the
         // bundled PocketWin wallpaper after upgrading from an earlier build.
-        String desktopThemeKey = desktopTheme+","+xServer.screenInfo+",pocketwin-wallpaper-2";
+        String desktopThemeKey = desktopTheme+","+xServer.screenInfo+",pocketwin-wallpaper-3";
         if (!desktopThemeKey.equals(container.getExtra("desktopTheme"))) {
             WineThemeManager.apply(this, new WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo);
             container.putExtra("desktopTheme", desktopThemeKey);
             containerDataChanged = true;
         }
 
+        stagePocketWinWindowsAssets();
         WineStartMenuCreator.create(this, container);
         WineUtils.createDosdevicesSymlinks(container);
         WineUtils.setWinebusOptions(container);
@@ -1632,7 +1668,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private void setupUI() {
         FrameLayout rootView = findViewById(R.id.FLXServerDisplay);
         xServerView = new XServerView(this, xServer);
-        xServerView.setCursorVisible(false);
+        xServerView.setCursorVisible(true);
         if (shortcut != null) {
             xServerView.setUnviewableWMClass("explorer.exe");
         }
@@ -1730,10 +1766,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             String simTouchScreen = shortcut.getExtra("simTouchScreen");
             touchpadView.setSimTouchScreen(simTouchScreen.equals("1"));
         }
-
-        desktopOverlay = new PocketWinDesktopOverlay(this);
-        rootView.addView(desktopOverlay, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         AppUtils.observeSoftKeyboardVisibility(drawerLayout, (cond) -> xServerView.setScreenOffsetYRelativeToCursor(cond));
     }
@@ -2756,8 +2788,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 envVars.remove("EXTRA_EXEC_ARGS"); // Remove the key after use
             }
         }
-        // Leave the desktop visible for normal containers; PocketWin draws its desktop controls above Wine.
-        String command = args.trim().isEmpty() ? "" : "winhandler.exe " + args.trim();
+        // Run the native Win32 PocketWin shell inside Wine. Actual game shortcuts use winhandler.exe.
+        String command = args.trim().isEmpty()
+                ? "\"C:\\Program Files\\PocketWin\\pocketwin_shell.exe\""
+                : "winhandler.exe " + args.trim();
 
         return command;
     }
