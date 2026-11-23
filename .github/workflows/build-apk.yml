@@ -149,10 +149,6 @@ jobs:
               echo "Required Windows root filesystem image is missing from $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/chrome_x64\.msi$' || {
-              echo "Bundled Windows Chrome installer is missing from $apk"
-              exit 1
-            }
             unzip -Z1 "$apk" | grep -q '^assets/pocketwin_shell\.exe$' || {
               echo "Bundled Windows desktop shell is missing from $apk"
               exit 1

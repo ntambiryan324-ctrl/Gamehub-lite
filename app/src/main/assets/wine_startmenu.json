@@ -28,8 +28,8 @@
         "name" : "System Tools",
         "children" : [
             {
-                "name" : "Computer",
-                "path" : "C:/windows/wfm.exe"
+                "name" : "File Explorer",
+                "path" : "C:/windows/explorer.exe"
             },
             {
                 "name" : "Task Manager",

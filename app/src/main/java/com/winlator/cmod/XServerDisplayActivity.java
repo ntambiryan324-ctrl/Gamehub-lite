@@ -143,6 +143,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1387,18 +1390,78 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         File chrome64 = new File(driveC, "Program Files/Google/Chrome/Application/chrome.exe");
         File chrome32 = new File(driveC, "Program Files (x86)/Google/Chrome/Application/chrome.exe");
         File chromeMsi = new File(driveC, "windows/temp/pocketwin-chrome.msi");
-        if (!chrome64.isFile() && !chrome32.isFile() && !chromeMsi.isFile()) {
-            File tempDir = chromeMsi.getParentFile();
-            if (tempDir != null && !tempDir.isDirectory()) tempDir.mkdirs();
-            byte[] installer = FileUtils.read(this, "chrome_x64.msi");
-            if (installer != null && installer.length > 30000000L) {
-                if (!FileUtils.write(chromeMsi, installer)) {
-                    Log.e("PocketWin", "Could not copy the Chrome installer into the container.");
+        if (chrome64.isFile() || chrome32.isFile()) {
+            if (chromeMsi.exists()) chromeMsi.delete();
+        } else if (!chromeMsi.isFile() || chromeMsi.length() < 30000000L) {
+            downloadChromeInstallerForContainer(chromeMsi);
+        }
+    }
+
+    // Runs on the container setup worker thread, not the Android UI thread.
+    // Keep the large MSI inside the container's private C: drive rather than embedding it in the APK.
+    private boolean downloadChromeInstallerForContainer(File destination) {
+        File parent = destination.getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+            Log.e("PocketWin", "Could not create the Chrome installer directory.");
+            return false;
+        }
+
+        File temporary = new File(destination.getAbsolutePath() + ".download");
+        final String installerUrl = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi";
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            HttpURLConnection connection = null;
+            temporary.delete();
+            try {
+                Log.i("PocketWin", "Downloading Google Chrome for this container (attempt " + attempt + "/3).");
+                connection = (HttpURLConnection) new URL(installerUrl).openConnection();
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 PocketWin");
+                connection.setInstanceFollowRedirects(true);
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(120000);
+                connection.setUseCaches(false);
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("Google returned HTTP " + responseCode);
                 }
-            } else {
-                Log.e("PocketWin", "The bundled Chrome MSI is missing or too small.");
+
+                long expectedLength = connection.getContentLengthLong();
+                long downloaded = 0L;
+                byte[] buffer = new byte[131072];
+                try (InputStream input = connection.getInputStream();
+                     FileOutputStream output = new FileOutputStream(temporary)) {
+                    int count;
+                    while ((count = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, count);
+                        downloaded += count;
+                    }
+                    output.getFD().sync();
+                }
+
+                if (downloaded < 30000000L || (expectedLength > 0L && downloaded != expectedLength)) {
+                    throw new IOException("Chrome MSI download was incomplete (" + downloaded + " bytes).");
+                }
+
+                if (destination.exists() && !destination.delete()) {
+                    throw new IOException("Could not replace the previous Chrome installer.");
+                }
+                if (!temporary.renameTo(destination)) {
+                    throw new IOException("Could not move the completed Chrome installer into the container.");
+                }
+
+                Log.i("PocketWin", "Chrome installer ready in this container (" + downloaded + " bytes).");
+                return true;
+            } catch (Exception e) {
+                Log.w("PocketWin", "Chrome download attempt " + attempt + " failed: " + e.getMessage());
+                temporary.delete();
+            } finally {
+                if (connection != null) connection.disconnect();
             }
         }
+
+        Log.e("PocketWin", "Google Chrome could not be downloaded. The Wine desktop will still start; connect to the internet and restart the container to retry.");
+        return false;
     }
 
     private void setupWineSystemFiles() {

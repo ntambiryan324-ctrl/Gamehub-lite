@@ -197,7 +197,7 @@ public class SettingsFragment extends Fragment {
 
         // Initialize the cursor lock checkbox
         cbCursorLock = view.findViewById(R.id.CBCursorLock);
-        cbCursorLock.setChecked(preferences.getBoolean("cursor_lock", true));
+        cbCursorLock.setChecked(preferences.getBoolean("cursor_lock", false));
         final CheckBox cbMoveCursorToTouchpoint = view.findViewById(R.id.CBMoveCursorToTouchpoint);
         cbMoveCursorToTouchpoint.setChecked(preferences.getBoolean("move_cursor_to_touchpoint", false));
         cbMoveCursorToTouchpoint.setOnCheckedChangeListener((b, checked) -> preferences.edit().putBoolean("move_cursor_to_touchpoint", checked).apply());
