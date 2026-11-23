@@ -58,7 +58,7 @@ static void OpenChromeUrl(const std::wstring& input) {
     std::wstring query=input;
     if(query.empty()) query=L"https://www.google.com/";
     std::wstring lower=query;
-    std::transform(lower.begin(),lower.end(),lower.begin(),[](wchar_t c){ return (wchar_t)towlower(c); });
+    std::transform(lower.begin(),lower.end(),lower.begin(),[](wchar_t c){ return (wchar_t)std::towlower(c); });
     std::wstring url;
     if(lower.rfind(L"https://",0)==0||lower.rfind(L"http://",0)==0) url=query;
     else if(query.find(L' ')==std::wstring::npos && query.find(L'.')!=std::wstring::npos) url=L"https://"+query;
@@ -124,8 +124,8 @@ static void DrawTaskbar(HDC dc) {
     for(const wchar_t* p:paths) { DrawIcon(dc,p,x,16,28); x+=49; }
     SYSTEMTIME st; GetLocalTime(&st);
     wchar_t clock[32],date[40];
-    swprintf(clock,32,L"%02u:%02u",st.wHour,st.wMinute);
-    swprintf(date,40,L"%02u/%02u/%04u",st.wDay,st.wMonth,st.wYear);
+    wsprintfW(clock,L"%02u:%02u",st.wHour,st.wMinute);
+    wsprintfW(date,L"%02u/%02u/%04u",st.wDay,st.wMonth,st.wYear);
     Text(dc,clock,r.right-75,5,65,25,11,RGB(244,248,255),false,DT_CENTER|DT_VCENTER);
     Text(dc,date,r.right-75,28,65,20,9,RGB(221,232,244),false,DT_CENTER|DT_VCENTER);
 }
@@ -195,7 +195,7 @@ static LRESULT CALLBACK PanelProc(HWND h,UINT m,WPARAM w,LPARAM l) {
 static LRESULT CALLBACK TaskbarProc(HWND h,UINT m,WPARAM w,LPARAM l) {
     switch(m) {
         case WM_CREATE: SetTimer(h,1,2500,nullptr); return 0;
-        case WM_TIMER: if(gPanel&&IsWindowVisible(gPanel)) { LoadApps(); InvalidateRect(gPanel,nullptr,TRUE); } return 0;
+        case WM_TIMER: LoadApps(); InvalidateRect(gTaskbar,nullptr,TRUE); if(gPanel&&IsWindowVisible(gPanel)) InvalidateRect(gPanel,nullptr,TRUE); return 0;
         case WM_PAINT: { PAINTSTRUCT ps; HDC dc=BeginPaint(h,&ps); DrawTaskbar(dc); EndPaint(h,&ps); return 0; }
         case WM_LBUTTONUP: {
             int x=GET_X_LPARAM(l);

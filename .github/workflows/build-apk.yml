@@ -125,18 +125,18 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
-          if [ "\${#APK_FILES[@]}" -eq 0 ]; then
+          if [ "${#APK_FILES[@]}" -eq 0 ]; then
             echo "No APKs were produced."
             exit 1
           fi
 
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          for apk in "\${APK_FILES[@]}"; do
+          for apk in "${APK_FILES[@]}"; do
             echo "Validating $apk"
             unzip -tq "$apk"
             BADGING="$("$AAPT" dump badging "$apk")"
-            PACKAGE="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
-            ACTIVITY="$(printf '%s\n' "$BADGING" | sed -n "s/^launchable-activity: name='\\([^']*\\)'.*/\\1/p")"
+            PACKAGE="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+            ACTIVITY="$(printf '%s\n' "$BADGING" | sed -n "s/^launchable-activity: name='\([^']*\)'.*/\1/p")"
 
             test -n "$PACKAGE" || { echo "Package name missing: $apk"; exit 1; }
             test "$ACTIVITY" = "com.winlator.cmod.MainActivity" || {
@@ -165,7 +165,7 @@ jobs:
       - name: Publish APK artifacts after build and APK validation
         uses: actions/upload-artifact@v4
         with:
-          name: gamehub-lite-\${{ env.FLAVOR }}-\${{ env.BUILD_TYPE }}-build-validated
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
