@@ -125,13 +125,13 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
-          if [ "${#APK_FILES[@]}" -eq 0 ]; then
+          if [ "\${#APK_FILES[@]}" -eq 0 ]; then
             echo "No APKs were produced."
             exit 1
           fi
 
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          for apk in "${APK_FILES[@]}"; do
+          for apk in "\${APK_FILES[@]}"; do
             echo "Validating $apk"
             unzip -tq "$apk"
             BADGING="$("$AAPT" dump badging "$apk")"
@@ -151,31 +151,11 @@ jobs:
               echo "Required Windows root filesystem image is missing from $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/chrome_x64\.msi
-          done
-
-      - name: Publish APK artifacts after build and APK validation
-        uses: actions/upload-artifact@v4
-        with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
-          path: app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
-          retention-days: 14
- || {
+            unzip -Z1 "$apk" | grep -q '^assets/chrome_x64\.msi$' || {
               echo "Bundled Windows Chrome installer is missing from $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_shell\.exe
-          done
-
-      - name: Publish APK artifacts after build and APK validation
-        uses: actions/upload-artifact@v4
-        with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
-          path: app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
-          retention-days: 14
- || {
+            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_shell\.exe$' || {
               echo "Bundled Windows desktop shell is missing from $apk"
               exit 1
             }
@@ -185,7 +165,7 @@ jobs:
       - name: Publish APK artifacts after build and APK validation
         uses: actions/upload-artifact@v4
         with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          name: gamehub-lite-\${{ env.FLAVOR }}-\${{ env.BUILD_TYPE }}-build-validated
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
