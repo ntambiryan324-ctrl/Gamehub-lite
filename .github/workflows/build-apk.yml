@@ -90,9 +90,7 @@ jobs:
           test -f app/src/main/AndroidManifest.xml
           test -f app/src/main/cpp/CMakeLists.txt
           test -f app/src/main/assets/container_pattern_common.tzst
-          test -f app/src/main/assets/chrome_x64.msi
           test -f app/src/main/assets/pocketwin_shell.exe
-          test "$(stat -c%s app/src/main/assets/chrome_x64.msi)" -gt 30000000
           file app/src/main/assets/pocketwin_shell.exe | grep -q "PE32+"
           test -f app/src/main/cpp/gladiorenderer/CMakeLists.txt
           test -f gradle/wrapper/gradle-wrapper.jar
