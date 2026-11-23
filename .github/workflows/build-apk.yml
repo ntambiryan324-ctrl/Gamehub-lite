@@ -71,8 +71,10 @@ jobs:
 
       - name: Install MinGW-w64 for the Windows desktop shell
         run: |
-          sudo apt-get update
-          sudo apt-get install -y g++-mingw-w64-x86-64
+          if ! command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
+            sudo apt-get install -y --no-install-recommends g++-mingw-w64-x86-64
+          fi
+          x86_64-w64-mingw32-g++ --version
 
       - name: Build the Win32 desktop shell
         run: |
