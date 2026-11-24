@@ -1376,7 +1376,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         File shellExe = new File(shellDir, "pocketwin_shell.exe");
         File shellMarker = new File(shellDir, ".pocketwin_shell_version");
-        String shellVersion = "1.0.5";
+        String shellVersion = "1.0.6";
         if (!shellExe.isFile() || !shellMarker.isFile()
                 || !shellVersion.equals(FileUtils.readString(shellMarker).trim())) {
             byte[] shellBytes = FileUtils.read(this, "pocketwin_shell.exe");
@@ -1385,6 +1385,21 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 FileUtils.writeString(shellMarker, shellVersion);
             } else {
                 Log.e("PocketWin", "The bundled Windows desktop shell could not be staged.");
+            }
+        }
+
+        // Keep a no-space alias in C:\\windows so Wine's command-line parser does not
+        // have to pass a quoted Program Files path when starting the desktop shell.
+        File windowsDir = new File(driveC, "windows");
+        if (!windowsDir.isDirectory()) windowsDir.mkdirs();
+        File shellAlias = new File(windowsDir, "pocketwin_shell.exe");
+        File shellAliasMarker = new File(windowsDir, ".pocketwin_shell_version");
+        if (shellExe.isFile() && (!shellAlias.isFile() || !shellAliasMarker.isFile()
+                || !shellVersion.equals(FileUtils.readString(shellAliasMarker).trim()))) {
+            if (FileUtils.copy(shellExe, shellAlias)) {
+                FileUtils.writeString(shellAliasMarker, shellVersion);
+            } else {
+                Log.e("PocketWin", "The no-space Windows shell alias could not be staged.");
             }
         }
 
@@ -2889,7 +2904,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
         // Run the native Win32 PocketWin shell inside Wine. Actual game shortcuts use winhandler.exe.
         String command = args.trim().isEmpty()
-                ? "\"C:\\Program Files\\PocketWin\\pocketwin_shell.exe\""
+                ? "C:\\windows\\pocketwin_shell.exe"
                 : "winhandler.exe " + args.trim();
 
         return command;
