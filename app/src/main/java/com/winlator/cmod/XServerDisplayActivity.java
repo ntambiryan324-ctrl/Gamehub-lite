@@ -1387,6 +1387,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             }
         }
 
+        createPocketWinDesktopShortcuts(driveC);
+
         File chrome64 = new File(driveC, "Program Files/Google/Chrome/Application/chrome.exe");
         File chrome32 = new File(driveC, "Program Files (x86)/Google/Chrome/Application/chrome.exe");
         File chromeMsi = new File(driveC, "windows/temp/pocketwin-chrome.msi");
@@ -1462,6 +1464,39 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         Log.e("PocketWin", "Google Chrome could not be downloaded. The Wine desktop will still start; connect to the internet and restart the container to retry.");
         return false;
+    }
+
+    // Create genuine Windows Shell Link (.lnk) files on this container's desktop.
+    // Targets may be installed after first launch; the links remain valid and are repaired on later launches.
+    private void createPocketWinDesktopShortcuts(File driveC) {
+        File desktop = container.getDesktopDir();
+        if (!desktop.isDirectory() && !desktop.mkdirs()) {
+            Log.w("PocketWin", "Could not create the Windows desktop folder.");
+            return;
+        }
+        String[][] apps = new String[][] {
+            {"Google Chrome", "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"},
+            {"File Explorer", "C:\\windows\\explorer.exe"},
+            {"Notepad", "C:\\windows\\notepad.exe"},
+            {"Calculator", "C:\\windows\\system32\\calc.exe"},
+            {"Command Prompt", "C:\\windows\\system32\\cmd.exe"},
+            {"Task Manager", "C:\\windows\\system32\\taskmgr.exe"},
+            {"Control Panel", "C:\\windows\\system32\\control.exe"},
+            {"Registry Editor", "C:\\windows\\regedit.exe"},
+            {"Wine Configuration", "C:\\windows\\system32\\winecfg.exe"}
+        };
+        for (String[] app : apps) {
+            File shortcut = new File(desktop, app[0] + ".lnk");
+            if (shortcut.isFile() && shortcut.length() > 64) continue;
+            try {
+                MSLink.Options options = new MSLink.Options();
+                options.targetPath = app[1];
+                options.iconLocation = app[1];
+                MSLink.createFile(options, shortcut);
+            } catch (Exception e) {
+                Log.w("PocketWin", "Could not create desktop shortcut for " + app[0], e);
+            }
+        }
     }
 
     private void setupWineSystemFiles() {
