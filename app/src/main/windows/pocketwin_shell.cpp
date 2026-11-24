@@ -1,5 +1,3 @@
-#define UNICODE
-#define _UNICODE
 #include <windows.h>
 #include <windowsx.h>
 #include <shellapi.h>
@@ -11,6 +9,8 @@
 #include <cwctype>
 #include <cstdio>
 #include <cctype>
+using std::min;
+using std::max;
 
 struct AppEntry { std::wstring title,path; };
 struct RecentEntry { std::wstring title,path; FILETIME modified; };
@@ -173,9 +173,9 @@ static HWND MakeLayered(const wchar_t* cls,const wchar_t* title,int w,int h,int 
     if(hwnd){SetLayeredWindowAttributes(hwnd,0,alpha,LWA_ALPHA);SetWindowRgn(hwnd,CreateRoundRectRgn(0,0,w+1,h+1,24,24),TRUE);}return hwnd;
 }
 static void HideStart() {if(gPanel)ShowWindow(gPanel,SW_HIDE);if(gDismiss)ShowWindow(gDismiss,SW_HIDE);gSearchFocused=false;}
-static void ShowSettings();
+static void OpenSettings();
 static void LaunchPath(const std::wstring& path) {
-    if(path==SETTINGS_APP){HideStart();ShowSettings();return;}
+    if(path==SETTINGS_APP){HideStart();OpenSettings();return;}
     if(path.empty())return;HideStart();ShellExecuteW(nullptr,L"open",path.c_str(),nullptr,nullptr,SW_SHOWNORMAL);
 }
 static void LaunchApp(int i){if(i>=0&&i<(int)gApps.size())LaunchPath(gApps[i].path);}
