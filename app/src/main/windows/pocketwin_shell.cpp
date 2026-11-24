@@ -333,7 +333,7 @@ static LRESULT CALLBACK TaskbarProc(HWND h,UINT m,WPARAM w,LPARAM l){
         case WM_TIMER:LoadApps();LoadRecent();InvalidateRect(h,nullptr,FALSE);if(gPanel&&IsWindowVisible(gPanel))InvalidateRect(gPanel,nullptr,FALSE);return 0;
         case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(h,&ps);DrawTaskbar(dc);EndPaint(h,&ps);return 0;}
         case WM_LBUTTONUP:{int x=GET_X_LPARAM(l),sw=GetSystemMetrics(SM_CXSCREEN),start=(sw-(6*46+5*5))/2;
-            if(x>=start&&x<start+46)ShowStart(!gPanel||!IsWindowVisible(gPanel)?false:false);
+            if(x>=start&&x<start+46)ShowStart(false);
             else if(x>=start+51&&x<start+97)ShowStart(true);
             else if(x>=start+102&&x<start+148)keybd_event(VK_MENU,0,0,0),keybd_event(VK_TAB,0,0,0),keybd_event(VK_TAB,0,KEYEVENTF_KEYUP,0),keybd_event(VK_MENU,0,KEYEVENTF_KEYUP,0);
             else if(x>=start+153&&x<start+199)LaunchPath(L"C:\\windows\\explorer.exe");
