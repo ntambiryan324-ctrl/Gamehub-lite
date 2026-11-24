@@ -21,6 +21,8 @@ import com.winlator.cmod.core.EnvVars;
 import com.winlator.cmod.core.FileUtils;
 import com.winlator.cmod.core.GPUInformation;
 import com.winlator.cmod.core.KeyValueSet;
+import com.winlator.cmod.core.MSLink;
+import com.winlator.cmod.core.WineRegistryEditor;
 import com.winlator.cmod.core.ProcessHelper;
 import com.winlator.cmod.core.TarCompressorUtils;
 import com.winlator.cmod.core.WineInfo;
@@ -534,6 +536,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // As in Bannerlator: bring a stale prefix up to date before the session, with Wine Mono's download prompt off.
         String wineLauncher = wineInfo.isArm64EC() ? winePath + "/wine" : imageFs.getBinDir() + "/box64 wine";
         updatePrefixBeforeSession(execEnvVars, wineLauncher, rootDir, imageFs);
+        installPocketWinChromeIfNeeded(execEnvVars, wineLauncher, rootDir);
 
         Log.d("GuestLauncher", "Executing command: " + command);
         return ProcessHelper.exec(command, execEnvVars.toStringArray(), rootDir, (status) -> {
@@ -544,6 +547,79 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             if (terminationCallback != null)
                 terminationCallback.call(status);
         });
+    }
+
+    /**
+     * Install the official Chrome MSI before the desktop shell starts. Previously the MSI was
+     * only launched by PocketWin's Win32 shell; if that shell failed, Chrome was never installed.
+     */
+    private void installPocketWinChromeIfNeeded(EnvVars guestEnv, String wineLauncher, File rootDir) {
+        if (container == null || container.getRootDir() == null) return;
+
+        File driveC = new File(container.getRootDir(), ".wine/drive_c");
+        File chrome64 = new File(driveC, "Program Files/Google/Chrome/Application/chrome.exe");
+        File chrome32 = new File(driveC, "Program Files (x86)/Google/Chrome/Application/chrome.exe");
+        File installer = new File(driveC, "windows/temp/pocketwin-chrome.msi");
+        File installLog = new File(driveC, "windows/temp/pocketwin-chrome-install.log");
+
+        if (!chrome64.isFile() && !chrome32.isFile()) {
+            if (!installer.isFile() || installer.length() < 30000000L) {
+                Log.w("PocketWin", "Chrome MSI is not ready; container desktop will start and setup will retry on next launch.");
+                return;
+            }
+
+            String installCommand = wineLauncher + " msiexec /i C:\\windows\\temp\\pocketwin-chrome.msi /qn /norestart /l*v C:\\windows\\temp\\pocketwin-chrome-install.log";
+            Log.i("PocketWin", "Installing Google Chrome inside the active Wine container.");
+            int status = ProcessHelper.execAndWait(installCommand, guestEnv.toStringArray(), rootDir, 600000L);
+            Log.i("PocketWin", "Chrome MSI installer exit status: " + status);
+
+            long deadline = System.currentTimeMillis() + 30000L;
+            while (System.currentTimeMillis() < deadline && !chrome64.isFile() && !chrome32.isFile()) {
+                try { Thread.sleep(500L); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+            }
+
+            if (!chrome64.isFile() && !chrome32.isFile()) {
+                String details = FileUtils.readString(installLog);
+                if (details != null && !details.isEmpty()) {
+                    int start = Math.max(0, details.length() - 5000);
+                    Log.e("PocketWin", "Chrome installation did not create chrome.exe. MSI log tail: " + details.substring(start));
+                } else {
+                    Log.e("PocketWin", "Chrome installation did not create chrome.exe; MSI exit status was " + status);
+                }
+                return;
+            }
+        }
+
+        File installedChrome = chrome64.isFile() ? chrome64 : chrome32;
+        Log.i("PocketWin", "Chrome executable detected: " + installedChrome.getAbsolutePath());
+
+        try {
+            File desktop = container.getDesktopDir();
+            if (!desktop.isDirectory() && !desktop.mkdirs()) {
+                Log.w("PocketWin", "Chrome is installed, but the Windows desktop folder could not be created.");
+            } else {
+                File shortcut = new File(desktop, "Google Chrome.lnk");
+                MSLink.Options options = new MSLink.Options();
+                options.targetPath = installedChrome.getAbsolutePath().replace('/', '\\');
+                options.iconLocation = options.targetPath;
+                MSLink.createFile(options, shortcut);
+                Log.i("PocketWin", "Created desktop shortcut: " + shortcut.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            Log.w("PocketWin", "Could not create the Chrome desktop shortcut.", e);
+        }
+
+        try (WineRegistryEditor registry = new WineRegistryEditor(new File(container.getRootDir(), ".wine/user.reg"))) {
+            String chromeCommand = "\"" + installedChrome.getAbsolutePath().replace('/', '\\') + "\" \"%1\"";
+            registry.setStringValue("Software\\Classes\\http\\shell\\open\\command", null, chromeCommand);
+            registry.setStringValue("Software\\Classes\\https\\shell\\open\\command", null, chromeCommand);
+            registry.setStringValue("Software\\Classes\\.html", null, "ChromeHTML");
+            registry.setStringValue("Software\\Classes\\.htm", null, "ChromeHTML");
+            registry.setStringValue("Software\\Classes\\ChromeHTML\\shell\\open\\command", null, chromeCommand);
+        } catch (Exception e) {
+            Log.w("PocketWin", "Chrome installed, but default-browser registration failed.", e);
+        }
     }
 
     /**
