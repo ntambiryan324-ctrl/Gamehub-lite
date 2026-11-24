@@ -77,6 +77,7 @@ import com.winlator.cmod.core.EnvVars;
 import com.winlator.cmod.core.FileUtils;
 import com.winlator.cmod.core.GPUInformation;
 import com.winlator.cmod.core.KeyValueSet;
+import com.winlator.cmod.core.MSLink;
 import com.winlator.cmod.core.OnExtractFileListener;
 import com.winlator.cmod.core.PreloaderDialog;
 import com.winlator.cmod.core.ProcessHelper;
@@ -1375,7 +1376,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         File shellExe = new File(shellDir, "pocketwin_shell.exe");
         File shellMarker = new File(shellDir, ".pocketwin_shell_version");
-        String shellVersion = "1.0.4";
+        String shellVersion = "1.0.5";
         if (!shellExe.isFile() || !shellMarker.isFile()
                 || !shellVersion.equals(FileUtils.readString(shellMarker).trim())) {
             byte[] shellBytes = FileUtils.read(this, "pocketwin_shell.exe");
