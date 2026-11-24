@@ -24,7 +24,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 public class PocketWinBrowserActivity extends Activity {
@@ -47,7 +46,9 @@ public class PocketWinBrowserActivity extends Activity {
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         WindowManager.LayoutParams params = window.getAttributes();
         params.dimAmount = 0.10f;
-        params.gravity = Gravity.CENTER;
+        params.gravity = Gravity.TOP | Gravity.LEFT;
+        params.x = (screenWidth - windowWidth) / 2;
+        params.y = (screenHeight - windowHeight) / 2;
         window.setAttributes(params);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -255,7 +256,7 @@ public class PocketWinBrowserActivity extends Activity {
         else if (!(value.startsWith("https://") || value.startsWith("http://"))) {
             if (value.contains(" ") || !value.contains(".")) {
                 try {
-                    value = "https://www.google.com/search?q=" + URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+                    value = "https://www.google.com/search?q=" + URLEncoder.encode(value, "UTF-8");
                 } catch (Exception ignored) {
                     value = "https://www.google.com/";
                 }
