@@ -1,4 +1,4 @@
-name: Build and validate GameHub Lite
+name: Build and validate PocketWin
 
 on:
   push:
@@ -32,12 +32,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: gamehub-lite-${{ github.ref }}-${{ github.sha }}
+  group: pocketwin-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   build-and-validate:
-    name: Build and validate APK
+    name: Build and validate PocketWin APK
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -61,22 +61,32 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install build dependencies
+      - name: Install Android build dependencies
         run: |
+          set -euo pipefail
           sdkmanager --install \
             "platforms;android-34" \
             "build-tools;35.0.0" \
             "cmake;3.22.1" \
             "ndk;29.0.14206865"
 
-      - name: Verify required source and submodule files
+      - name: Verify PocketWin Android desktop sources
         run: |
           set -euo pipefail
           test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/winlator/cmod/PocketWinDesktopActivity.java
+          test -f app/src/main/java/com/winlator/cmod/PocketWinBrowserActivity.java
+          test -f app/src/main/assets/pocketwin_desktop/index.html
           test -f app/src/main/cpp/CMakeLists.txt
           test -f app/src/main/assets/container_pattern_common.tzst
           test -f app/src/main/cpp/gladiorenderer/CMakeLists.txt
           test -f gradle/wrapper/gradle-wrapper.jar
+          grep -q 'com.winlator.cmod.PocketWinDesktopActivity' app/src/main/AndroidManifest.xml
+          grep -q 'category.HOME' app/src/main/AndroidManifest.xml
+          if grep -q 'pocketwin_shell.exe' app/src/main/java/com/winlator/cmod/XServerDisplayActivity.java; then
+            echo "The obsolete Wine-managed PocketWin shell is still referenced."
+            exit 1
+          fi
           chmod +x ./gradlew
 
       - name: Build selected APK flavor
@@ -102,7 +112,7 @@ jobs:
             ./gradlew ":app:assemble${CAP_FLAVOR}${CAP_TYPE}" --no-daemon --stacktrace
           fi
 
-      - name: Validate APK contents and required assets
+      - name: Validate APK contents and launcher
         run: |
           set -euo pipefail
           mapfile -d '' APK_FILES < <(find app/build/outputs/apk -type f -name '*.apk' -print0)
@@ -121,48 +131,30 @@ jobs:
 
             test -n "$PACKAGE" || { echo "Package name missing: $apk"; exit 1; }
             test "$ACTIVITY" = "com.winlator.cmod.PocketWinDesktopActivity" || {
-              echo "Unexpected or missing launcher activity in $apk: $ACTIVITY"
+              echo "Unexpected or missing PocketWin desktop launcher in $apk: $ACTIVITY"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^lib/arm64-v8a/[^/]*\.so$' || {
+
+            APK_ENTRIES="$(unzip -Z1 "$apk")"
+            printf '%s\n' "$APK_ENTRIES" | grep -q '^lib/arm64-v8a/[^/]*\.so$' || {
               echo "No ARM64 native libraries found in $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/imagefs\.tzst            echo "APK structure OK: $PACKAGE / $ACTIVITY"
-          done
-
-      - name: Publish APK artifacts after build and APK validation
-        uses: actions/upload-artifact@v4
-        with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
-          path: app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
-          retention-days: 14
- || {
-              echo "Required Windows root filesystem image is missing from $apk"
+            printf '%s\n' "$APK_ENTRIES" | grep -q '^assets/imagefs\.tzst$' || {
+              echo "Required Windows runtime filesystem image is missing from $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_desktop/index\.html            echo "APK structure OK: $PACKAGE / $ACTIVITY"
-          done
-
-      - name: Publish APK artifacts after build and APK validation
-        uses: actions/upload-artifact@v4
-        with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
-          path: app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
-          retention-days: 14
- || {
-              echo "PocketWin desktop interface is missing from $apk"
+            printf '%s\n' "$APK_ENTRIES" | grep -q '^assets/pocketwin_desktop/index\.html$' || {
+              echo "PocketWin native desktop interface is missing from $apk"
               exit 1
             }
             echo "APK structure OK: $PACKAGE / $ACTIVITY"
           done
 
-      - name: Publish APK artifacts after build and APK validation
+      - name: Publish validated PocketWin APK
         uses: actions/upload-artifact@v4
         with:
-          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          name: pocketwin-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-validated
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
