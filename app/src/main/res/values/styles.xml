@@ -70,6 +70,15 @@
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
+    <!-- Floating desktop browser: keeps the PocketWin desktop visible behind Chromium. -->
+    <style name="PocketWinBrowserWindow" parent="@style/AppTheme">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowCloseOnTouchOutside">false</item>
+    </style>
+
     <!-- Dark Theme Fullscreen -->
     <style name="AppThemeFullscreen.Dark" parent="@style/AppTheme.Dark">
         <item name="android:windowFullscreen">true</item>
