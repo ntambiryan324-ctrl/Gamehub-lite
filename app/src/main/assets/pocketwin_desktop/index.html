@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b1930">
+<title>PocketWin Desktop</title>
+<style>
+:root{--glass:rgba(25,38,59,.88);--glass2:rgba(20,31,49,.94);--edge:rgba(255,255,255,.13);--text:#f6f8fc;--muted:#b8c3d2;--blue:#1976d2;--task-h:58px}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:#07172e;user-select:none;-webkit-user-select:none}
+body{background:radial-gradient(ellipse 45% 62% at 54% 46%,rgba(19,96,207,.35),transparent 72%),radial-gradient(ellipse 40% 58% at 28% 87%,rgba(0,126,211,.3),transparent 75%),linear-gradient(138deg,#031126 0%,#08254b 46%,#06152d 100%)}
+#wallpaper{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#wallpaper:before{content:"";position:absolute;width:62vw;height:65vw;max-height:900px;max-width:900px;min-width:430px;min-height:430px;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-25deg);border-radius:43% 57% 61% 39%/48% 42% 58% 52%;background:radial-gradient(ellipse at 35% 38%,#70c9ff 0,#267fea 18%,#1454cc 38%,#092d82 59%,#061c53 74%,transparent 75%);filter:drop-shadow(0 35px 60px rgba(0,0,0,.4));opacity:.9}
+#wallpaper:after{content:"";position:absolute;width:55vw;height:54vw;min-width:390px;min-height:390px;left:51%;top:48%;transform:translate(-50%,-50%) rotate(24deg);border-radius:56% 44% 38% 62%/50% 58% 42% 50%;background:radial-gradient(ellipse at 40% 32%,rgba(102,193,255,.95),rgba(23,105,238,.85) 24%,rgba(6,52,153,.96) 50%,rgba(0,8,35,.97) 67%,transparent 68%);mix-blend-mode:screen;opacity:.7}
+#desktop{position:absolute;inset:0 0 var(--task-h) 0;overflow:hidden}
+#desktopIcons{position:absolute;left:14px;top:16px;display:grid;grid-auto-flow:row;grid-template-columns:repeat(1,82px);gap:13px}
+.desktop-icon{width:78px;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:6px 3px;border:1px solid transparent;border-radius:7px;color:#fff;text-shadow:0 1px 3px #000;text-align:center;font-size:11px;line-height:1.2;cursor:pointer}
+.desktop-icon:active,.desktop-icon:hover{background:rgba(91,151,226,.28);border-color:rgba(180,216,255,.5)}
+.desk-glyph{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font-size:26px;background:linear-gradient(145deg,rgba(255,255,255,.24),rgba(255,255,255,.06));box-shadow:0 4px 12px rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.16);text-shadow:none}
+.desk-glyph img{width:31px;height:31px;object-fit:contain;border-radius:7px}
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--task-h);display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(231,241,251,.79);border-top:1px solid rgba(255,255,255,.65);backdrop-filter:blur(28px) saturate(1.35);-webkit-backdrop-filter:blur(28px) saturate(1.35);color:#18263a;z-index:50}
+.task-left{position:absolute;left:12px;display:flex;align-items:center;gap:6px}
+.task-center{display:flex;align-items:center;justify-content:center;gap:7px}
+.task-right{position:absolute;right:13px;display:flex;align-items:center;gap:12px;font-size:11px;color:#1b2a3c}
+.task-btn{width:40px;height:40px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;color:#16314c;font-size:21px;cursor:pointer;position:relative}
+.task-btn:hover,.task-btn.active{background:rgba(255,255,255,.72)}
+.task-btn img{width:25px;height:25px;object-fit:contain}
+.task-btn:after{content:"";position:absolute;bottom:1px;left:13px;right:13px;height:3px;border-radius:3px;background:transparent}
+.task-btn.running:after{background:#397dcc}
+#startButton{font-size:25px;color:#1675d9}
+#searchButton{width:auto;min-width:114px;height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:18px;background:rgba(255,255,255,.72);font-size:12px;color:#526173}
+#taskTime{display:flex;flex-direction:column;line-height:1.35;text-align:right;font-size:11px}
+.tray-icon{font-size:15px}
+#startMenu{position:absolute;z-index:80;width:min(700px,calc(100vw - 30px));height:min(690px,calc(100dvh - 80px));left:50%;bottom:calc(var(--task-h) + 12px);transform:translateX(-50%) translateY(12px);opacity:0;visibility:hidden;transition:opacity .16s ease,transform .16s ease;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.19);border-radius:12px;background:rgba(24,36,56,.91);box-shadow:0 28px 80px rgba(0,0,0,.48);backdrop-filter:blur(32px) saturate(1.4);-webkit-backdrop-filter:blur(32px) saturate(1.4);color:#f4f7fb}
+#startMenu.open{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.start-search{height:46px;margin:22px 26px 16px;border-radius:22px;border:1px solid rgba(255,255,255,.17);background:rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;padding:0 15px}
+.start-search span{font-size:15px;color:#b7c6d8}
+.start-search input{flex:1;width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:14px}
+.start-search input::placeholder{color:#bdc9d8}
+.start-body{flex:1;overflow:auto;padding:0 29px 14px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:8px 0 13px;font-size:14px;font-weight:600}
+.small-pill{font:12px inherit;padding:5px 11px;border-radius:6px;color:#f5f7fb;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.13);cursor:pointer}
+.small-pill:hover{background:rgba(255,255,255,.2)}
+.app-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px 4px}
+.app-tile{min-width:0;min-height:79px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:7px 3px;cursor:pointer;text-align:center}
+.app-tile:hover{background:rgba(255,255,255,.1)}
+.app-icon{width:37px;height:37px;border-radius:9px;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.12);overflow:hidden}
+.app-icon img{width:100%;height:100%;object-fit:contain}
+.app-name{max-width:100%;font-size:10.5px;color:#f0f3f8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#recommended{margin-top:18px;padding-top:6px}
+.recommended-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 18px}
+.recommend{display:flex;align-items:center;gap:11px;padding:8px 5px;border-radius:7px;cursor:pointer;min-width:0}
+.recommend:hover{background:rgba(255,255,255,.1)}
+.recommend .app-icon{width:34px;height:34px;flex-shrink:0}
+.rec-meta{display:flex;flex-direction:column;min-width:0;gap:3px}
+.rec-meta b{font-size:11px;font-weight:500;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.rec-meta span{font-size:9px;color:#aebbd0}
+.start-footer{height:58px;flex-shrink:0;background:rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;padding:0 27px}
+.profile{display:flex;align-items:center;gap:10px;font-size:12px}
+.avatar{width:27px;height:27px;border-radius:50%;background:linear-gradient(145deg,#d4e7ff,#789bc5);color:#17375b;display:grid;place-items:center;font-weight:700}
+.power{border:0;background:transparent;color:white;font-size:20px;width:36px;height:36px;border-radius:7px;cursor:pointer}
+.power:hover{background:rgba(255,255,255,.13)}
+#allAppsPage{display:none}
+#allAppsPage.visible{display:block}
+#pinnedPage.hidden{display:none}
+#appSearchResults{display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#appSearchResults.visible{display:grid}
+#appSearchResults .app-tile{min-height:72px}
+#windowLayer{position:absolute;inset:0 0 var(--task-h) 0;z-index:30;pointer-events:none}
+.app-window{position:absolute;left:13%;top:9%;width:min(850px,78vw);height:min(620px,76vh);min-width:290px;min-height:220px;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#f0f4f9;color:#172336;box-shadow:0 24px 65px rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.45);pointer-events:auto}
+.window-titlebar{height:44px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 10px 0 15px;background:#eef2f8;cursor:move;border-bottom:1px solid #d9e0ea}
+.window-title{flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.window-controls{display:flex;align-items:center;gap:3px}
+.win-control{width:36px;height:32px;border:0;border-radius:5px;background:transparent;color:#34465c;font-size:16px;cursor:pointer}
+.win-control:hover{background:#dfe7f2}.win-control.close:hover{background:#d94b4b;color:#fff}
+.window-content{flex:1;min-height:0;position:relative;background:#fff}
+.window-content iframe{width:100%;height:100%;border:0;background:#fff}
+.window-status{height:24px;background:#f4f7fb;border-top:1px solid #dfe5ee;display:flex;align-items:center;padding:0 12px;font-size:10px;color:#66758a}
+.resize-handle{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,#9aabc0 51%,#9aabc0 57%,transparent 58%,transparent 68%,#9aabc0 69%,#9aabc0 75%,transparent 76%)}
+.browser-toolbar{height:43px;background:#f5f7fa;display:flex;align-items:center;gap:7px;padding:0 9px;border-bottom:1px solid #dfe5ee}
+.browser-action{border:0;background:transparent;color:#42546b;width:27px;height:29px;border-radius:5px;cursor:pointer}
+.browser-action:hover{background:#e6ebf2}
+.browser-address{flex:1;min-width:0;border:1px solid #d6dde7;background:#fff;border-radius:18px;height:30px;padding:0 12px;font-size:11px;outline:0;color:#263a52}
+.browser-address:focus{border-color:#77aeea;box-shadow:0 0 0 2px rgba(56,135,219,.12)}
+#settingsPane{padding:22px;overflow:auto;height:100%;background:#f5f7fa}
+.settings-nav{display:grid;grid-template-columns:160px 1fr;gap:22px;min-height:100%}
+.settings-menu{display:flex;flex-direction:column;gap:5px}
+.settings-menu div{padding:10px 12px;border-radius:6px;font-size:12px;color:#304258}
+.settings-menu div:first-child{background:#dce8f6;font-weight:600}
+.settings-main h2{font-size:23px;margin:0 0 16px;font-weight:600}
+.settings-card{padding:16px;border:1px solid #dce3ed;background:#fff;border-radius:9px;margin-bottom:10px;font-size:12px;color:#53647a}
+.settings-card b{display:block;color:#1b2e46;font-size:13px;margin-bottom:5px}
+#toast{position:absolute;z-index:150;bottom:calc(var(--task-h) + 15px);left:50%;transform:translateX(-50%);padding:11px 17px;border-radius:8px;background:rgba(20,32,50,.94);border:1px solid rgba(255,255,255,.15);font-size:12px;box-shadow:0 9px 25px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .15s}
+#toast.show{opacity:1}
+#searchOverlay{position:absolute;z-index:90;left:50%;bottom:calc(var(--task-h) + 12px);transform:translateX(-50%);width:min(620px,calc(100vw - 30px));background:rgba(24,36,56,.94);border:1px solid var(--edge);border-radius:11px;padding:17px;display:none;box-shadow:0 25px 55px rgba(0,0,0,.4);backdrop-filter:blur(26px)}
+#searchOverlay.open{display:block}
+#searchOverlay input{height:44px;width:100%;border-radius:7px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.1);padding:0 14px;color:#fff;font-size:14px;outline:0}
+#searchOverlay p{font-size:11px;color:#aab9cc;margin:10px 3px 0}
+@media(max-width:650px){
+ :root{--task-h:54px}
+ #desktopIcons{grid-template-columns:repeat(2,76px);top:10px;left:7px;gap:6px}
+ .desktop-icon{width:72px;min-height:70px;font-size:10px}
+ .desk-glyph{width:36px;height:36px;font-size:23px}
+ #startMenu{height:min(660px,calc(100dvh - 72px));bottom:calc(var(--task-h) + 8px)}
+ .start-search{margin:13px 13px 10px}
+ .start-body{padding:0 14px 12px}
+ .app-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 2px}
+ .app-tile{min-height:71px}
+ .recommended-grid{gap:2px 7px}
+ .task-left{display:none}.task-center{gap:3px}
+ #searchButton{min-width:81px;height:34px;padding:0 10px;font-size:11px}
+ .task-btn{width:36px;height:36px}
+ .task-right{right:7px;gap:7px}
+ .task-right .tray-hide{display:none}
+ .app-window{left:3%;top:5%;width:94vw;height:82vh}
+ .settings-nav{grid-template-columns:112px 1fr;gap:10px}
+ .settings-menu div{padding:9px 6px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div id="wallpaper"></div>
+<div id="desktop">
+ <div id="desktopIcons">
+  <div class="desktop-icon" ondblclick="openBrowserWindow('https://www.google.com','Google Chrome')" onclick="selectDesktop(this)">
+   <div class="desk-glyph" style="background:linear-gradient(145deg,#fff,#dce8f8)"><span style="font-size:26px;background:conic-gradient(#e33b35 0 120deg,#f5c13e 120deg 220deg,#28a56b 220deg 300deg,#e33b35 300deg);background-clip:text;-webkit-background-clip:text;color:transparent">◉</span></div><span>Google Chrome</span>
+  </div>
+  <div class="desktop-icon" ondblclick="openMain('files')" onclick="selectDesktop(this)">
+   <div class="desk-glyph" style="color:#f5c84e">📁</div><span>File Explorer</span>
+  </div>
+  <div class="desktop-icon" ondblclick="openMain('windows')" onclick="selectDesktop(this)">
+   <div class="desk-glyph" style="color:#95c9ff">▦</div><span>Windows Apps</span>
+  </div>
+  <div class="desktop-icon" ondblclick="openSettingsWindow()" onclick="selectDesktop(this)">
+   <div class="desk-glyph" style="color:#c9d8ea">⚙</div><span>Settings</span>
+  </div>
+  <div class="desktop-icon" ondblclick="showToast('Recycle Bin is empty')" onclick="selectDesktop(this)">
+   <div class="desk-glyph">🗑</div><span>Recycle Bin</span>
+  </div>
+ </div>
+</div>
+
+<div id="windowLayer"></div>
+<div id="startMenu">
+ <div class="start-search"><span>⌕</span><input id="startSearch" placeholder="Type here to search" autocomplete="off"></div>
+ <div class="start-body">
+  <div id="pinnedPage">
+   <div class="section-head"><span>Pinned</span><button class="small-pill" onclick="toggleAllApps(true)">All apps ›</button></div>
+   <div class="app-grid" id="pinnedGrid"></div>
+   <div id="recommended">
+    <div class="section-head"><span>Recommended</span><button class="small-pill" onclick="showToast('Recommended apps are based on your installed applications')">More ›</button></div>
+    <div class="recommended-grid" id="recommendedGrid"></div>
+   </div>
+  </div>
+  <div id="allAppsPage">
+   <div class="section-head"><span>All apps</span><button class="small-pill" onclick="toggleAllApps(false)">Back</button></div>
+   <div class="app-grid" id="allAppsGrid"></div>
+  </div>
+  <div id="appSearchResults"></div>
+ </div>
+ <div class="start-footer"><div class="profile"><div class="avatar">P</div><span>This PC · Local Account</span></div><button class="power" onclick="showToast('Close PocketWin from Android Recent Apps to exit the desktop')">⏻</button></div>
+</div>
+
+<div id="taskbar">
+ <div class="task-left"><button class="task-btn" title="Task View" onclick="showToast('Task view')">▣</button></div>
+ <div class="task-center">
+  <button class="task-btn" id="startButton" title="Start" onclick="toggleStart()">⊞</button>
+  <button class="task-btn" id="searchButton" onclick="toggleSearch()"><span>⌕</span><span>Search</span></button>
+  <button class="task-btn" title="Browser" onclick="openBrowserWindow('https://www.google.com','Google Chrome')"><span style="font-size:23px;background:conic-gradient(#e33b35 0 120deg,#f5c13e 120deg 220deg,#28a56b 220deg 300deg,#e33b35 300deg);background-clip:text;-webkit-background-clip:text;color:transparent">◉</span></button>
+  <button class="task-btn" title="File Explorer" onclick="openMain('files')">📁</button>
+  <button class="task-btn" title="Settings" onclick="openSettingsWindow()">⚙</button>
+ </div>
+ <div class="task-right"><span class="tray-icon tray-hide">⌃</span><span class="tray-icon">◔</span><span class="tray-icon">◖</span><div id="taskTime"><span id="clock">--:--</span><span id="date">--/--/----</span></div></div>
+</div>
+
+<div id="searchOverlay"><input id="taskSearch" placeholder="Search apps, settings, or the web"><p>Type an app name or search the web. Press Enter to continue.</p></div>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let installedApps=[];
+let allAppsOpen=false;
+let toastTimer=0;
+const shortcuts=[
+ {name:"Google Chrome",type:"browser",glyph:"◉",query:"https://www.google.com"},
+ {name:"File Explorer",type:"files",glyph:"📁"},
+ {name:"Windows Apps",type:"windows",glyph:"▦"},
+ {name:"Settings",type:"settings",glyph:"⚙"},
+ {name:"Play Store",packageName:"com.android.vending",glyph:"▶"},
+ {name:"Camera",packageName:"com.android.camera",glyph:"📷"}
+];
+function safeName(name){return String(name||"App").replace(/[<>&"]/g,"")}
+function showToast(message){const t=$("toast");t.textContent=message;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200)}
+function updateClock(){const d=new Date();$("clock").textContent=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});$("date").textContent=d.toLocaleDateString([], {month:"2-digit",day:"2-digit",year:"numeric"})}
+function toggleStart(force){const menu=$("startMenu"),open=force===undefined?!menu.classList.contains("open"):force;menu.classList.toggle("open",open);$("startButton").classList.toggle("active",open);if(open){$("searchOverlay").classList.remove("open");$("startSearch").focus()}}
+function toggleSearch(){const s=$("searchOverlay");s.classList.toggle("open");if(s.classList.contains("open")){$("startMenu").classList.remove("open");$("taskSearch").focus()}}
+function toggleAllApps(show){allAppsOpen=show;$("pinnedPage").classList.toggle("hidden",show);$("allAppsPage").classList.toggle("visible",show);$("appSearchResults").classList.remove("visible");$("appSearchResults").style.display="none"}
+function selectDesktop(el){document.querySelectorAll(".desktop-icon").forEach(x=>x.style.background="");el.style.background="rgba(91,151,226,.28)"}
+function appTile(app){const tile=document.createElement("div");tile.className="app-tile";const icon=document.createElement("div");icon.className="app-icon";if(app.icon){const img=document.createElement("img");img.src="data:image/png;base64,"+app.icon;icon.appendChild(img)}else{icon.textContent=app.glyph||"▣";icon.style.background=app.type==="browser"?"linear-gradient(145deg,#fff,#dce8f8)":"rgba(255,255,255,.12)";if(app.type==="browser")icon.style.color="#2789cc"}const label=document.createElement("div");label.className="app-name";label.textContent=app.name;tile.append(icon,label);tile.onclick=()=>launchItem(app);return tile}
+function recTile(app,detail){const row=document.createElement("div");row.className="recommend";const icon=document.createElement("div");icon.className="app-icon";if(app.icon){const img=document.createElement("img");img.src="data:image/png;base64,"+app.icon;icon.appendChild(img)}else icon.textContent=app.glyph||"▣";const meta=document.createElement("div");meta.className="rec-meta";const b=document.createElement("b");b.textContent=app.name;const s=document.createElement("span");s.textContent=detail||"Recently added";meta.append(b,s);row.append(icon,meta);row.onclick=()=>launchItem(app);return row}
+function renderApps(){
+ const pinned=[...shortcuts];
+ installedApps.forEach(a=>{if(!pinned.some(p=>p.packageName===a.packageName||p.name.toLowerCase()===a.name.toLowerCase()))pinned.push(a)});
+ $("pinnedGrid").replaceChildren(...pinned.slice(0,18).map(appTile));
+ $("allAppsGrid").replaceChildren(...installedApps.map(appTile));
+ const rec=[...shortcuts.slice(0,4),...installedApps.slice(0,2)];
+ $("recommendedGrid").replaceChildren(...rec.slice(0,6).map(a=>recTile(a,a.type?"Pinned":"Installed app")));
+}
+function launchItem(app){
+ toggleStart(false);
+ if(app.type==="browser"){openBrowserWindow(app.query||"https://www.google.com","Google Chrome");return}
+ if(app.type==="files"){openMain("files");return}
+ if(app.type==="windows"){openMain("windows");return}
+ if(app.type==="settings"){openSettingsWindow();return}
+ if(app.packageName&&window.PocketWin){PocketWin.launchApp(app.packageName);return}
+ showToast(app.name+" is not available on this device");
+}
+function openMain(section){
+ if(!window.PocketWin){showToast("PocketWin services are unavailable");return}
+ if(section==="files")PocketWin.openFileManager();
+ else if(section==="windows")PocketWin.openWindowsApps();
+ else if(section==="containers")PocketWin.openContainers();
+}
+function normalizeUrl(raw){
+ let value=String(raw||"").trim();if(!value)return "https://www.google.com";
+ if(/^https?:\/\//i.test(value))return value;
+ if(value.includes(" ")||!value.includes("."))return "https://www.google.com/search?q="+encodeURIComponent(value);
+ return "https://"+value;
+}
+function openBrowserWindow(url,title){
+ url=normalizeUrl(url);toggleStart(false);$("searchOverlay").classList.remove("open");
+ const w=document.createElement("div");w.className="app-window";w.style.left=Math.max(8,(window.innerWidth-Math.min(850,window.innerWidth*.78))/2)+"px";w.style.top=Math.max(8,(window.innerHeight-Math.min(620,window.innerHeight*.76))/2)+"px";
+ const header=document.createElement("div");header.className="window-titlebar";const logo=document.createElement("span");logo.textContent="◉";logo.style.cssText="font-size:20px;color:#2789cc";const name=document.createElement("div");name.className="window-title";name.textContent=title||"Google Chrome";const controls=document.createElement("div");controls.className="window-controls";const min=document.createElement("button");min.className="win-control";min.textContent="—";const max=document.createElement("button");max.className="win-control";max.textContent="□";const close=document.createElement("button");close.className="win-control close";close.textContent="×";controls.append(min,max,close);header.append(logo,name,controls);
+ const bar=document.createElement("div");bar.className="browser-toolbar";const back=document.createElement("button");back.className="browser-action";back.textContent="‹";const forward=document.createElement("button");forward.className="browser-action";forward.textContent="›";const reload=document.createElement("button");reload.className="browser-action";reload.textContent="⟳";const address=document.createElement("input");address.className="browser-address";address.value=url;address.autocapitalize="off";address.spellcheck=false;const go=document.createElement("button");go.className="browser-action";go.textContent="↵";bar.append(back,forward,reload,address,go);
+ const content=document.createElement("div");content.className="window-content";const frame=document.createElement("iframe");frame.allow="accelerometer; autoplay; clipboard-read; clipboard-write; encrypted-media; fullscreen; picture-in-picture";frame.referrerPolicy="no-referrer-when-downgrade";content.append(frame);
+ const status=document.createElement("div");status.className="window-status";status.textContent="Chromium browser · Desktop site mode";
+ const handle=document.createElement("div");handle.className="resize-handle";w.append(header,bar,content,status,handle);$("windowLayer").appendChild(w);
+ function navigate(){frame.src=normalizeUrl(address.value)}
+ go.onclick=navigate;address.addEventListener("keydown",e=>{if(e.key==="Enter")navigate()});reload.onclick=()=>{try{frame.contentWindow.location.reload()}catch(e){navigate()}};back.onclick=()=>{try{frame.contentWindow.history.back()}catch(e){}};forward.onclick=()=>{try{frame.contentWindow.history.forward()}catch(e){}};
+ close.onclick=()=>w.remove();min.onclick=()=>{w.style.display="none";const b=document.createElement("button");b.className="task-btn running";b.textContent="◉";b.title="Restore Chrome";b.onclick=()=>{w.style.display="flex";b.remove()};$("taskbar").querySelector(".task-center").appendChild(b)};max.onclick=()=>{if(w.dataset.max==="1"){w.style.left=w.dataset.left;w.style.top=w.dataset.top;w.style.width=w.dataset.width;w.style.height=w.dataset.height;w.dataset.max="0"}else{w.dataset.left=w.style.left;w.dataset.top=w.style.top;w.dataset.width=w.style.width;w.dataset.height=w.style.height;w.style.left="5px";w.style.top="5px";w.style.width="calc(100% - 10px)";w.style.height="calc(100% - 10px)";w.dataset.max="1"}};
+ let drag=null;header.addEventListener("pointerdown",e=>{if(e.target.closest("button"))return;drag={x:e.clientX- w.offsetLeft,y:e.clientY-w.offsetTop};header.setPointerCapture(e.pointerId)});header.addEventListener("pointermove",e=>{if(drag){w.style.left=Math.max(0,e.clientX-drag.x)+"px";w.style.top=Math.max(0,e.clientY-drag.y)+"px"}});header.addEventListener("pointerup",()=>drag=null);let resize=null;handle.addEventListener("pointerdown",e=>{resize={x:e.clientX,y:e.clientY,w:w.offsetWidth,h:w.offsetHeight};handle.setPointerCapture(e.pointerId);e.stopPropagation()});handle.addEventListener("pointermove",e=>{if(resize){w.style.width=Math.max(290,resize.w+e.clientX-resize.x)+"px";w.style.height=Math.max(220,resize.h+e.clientY-resize.y)+"px"}});handle.addEventListener("pointerup",()=>resize=null);
+ frame.src=url;
+}
+function openSettingsWindow(){
+ const w=document.createElement("div");w.className="app-window";w.style.left="10%";w.style.top="8%";w.style.width="min(900px,80vw)";w.style.height="min(650px,78vh)";
+ const header=document.createElement("div");header.className="window-titlebar";header.innerHTML='<span>⚙</span><div class="window-title">Settings</div><div class="window-controls"><button class="win-control close">×</button></div>';header.querySelector("button").onclick=()=>w.remove();
+ const content=document.createElement("div");content.className="window-content";content.innerHTML='<div id="settingsPane"><div class="settings-nav"><div class="settings-menu"><div>System</div><div>Bluetooth & devices</div><div>Network & internet</div><div>Personalization</div><div>Apps</div><div>Accounts</div><div>Time & language</div><div>Privacy & security</div></div><div class="settings-main"><h2>System</h2><div class="settings-card"><b>This PC</b><span>'+safeName(window.PocketWin?PocketWin.getDeviceLabel():"Android tablet")+' · PocketWin desktop</span></div><div class="settings-card"><b>Display</b><span>Desktop interface scales automatically to this screen.</span></div><div class="settings-card"><b>Windows applications</b><span>Wine and Box64 are only started when you open Windows Apps.</span><p><button class="small-pill" onclick="openMain(\\'windows\\')">Manage Windows apps</button></p></div><div class="settings-card"><b>Android settings</b><span>Manage Wi-Fi, Bluetooth, permissions and connected devices.</span><p><button class="small-pill" onclick="PocketWin.openAndroidSettings()">Open Android Settings</button></p></div></div></div></div>';
+ w.append(header,content);$("windowLayer").appendChild(w);
+ let drag=null;header.addEventListener("pointerdown",e=>{if(e.target.closest("button"))return;drag={x:e.clientX-w.offsetLeft,y:e.clientY-w.offsetTop};header.setPointerCapture(e.pointerId)});header.addEventListener("pointermove",e=>{if(drag){w.style.left=Math.max(0,e.clientX-drag.x)+"px";w.style.top=Math.max(0,e.clientY-drag.y)+"px"}});header.addEventListener("pointerup",()=>drag=null);
+}
+function filterStart(query){
+ const q=query.toLowerCase().trim();if(!q){$("appSearchResults").classList.remove("visible");$("appSearchResults").style.display="none";$("pinnedPage").classList.remove("hidden");$("allAppsPage").classList.toggle("visible",allAppsOpen);return}
+ $("pinnedPage").classList.add("hidden");$("allAppsPage").classList.remove("visible");const results=installedApps.filter(a=>a.name.toLowerCase().includes(q));const tiles=results.slice(0,16).map(appTile);$("appSearchResults").style.display="grid";$("appSearchResults").classList.add("visible");$("appSearchResults").replaceChildren(...tiles);
+}
+function runSearch(value){const q=String(value||"").trim();if(!q)return;toggleStart(false);$("searchOverlay").classList.remove("open");openBrowserWindow(normalizeUrl(q),"Google Chrome")}
+function handleBack(){if($("startMenu").classList.contains("open")){toggleStart(false);return true}if($("searchOverlay").classList.contains("open")){$("searchOverlay").classList.remove("open");return true}const w=$("windowLayer").lastElementChild;if(w){w.remove();return true}return false}
+window.PocketWinUI={handleBack};
+$("startSearch").addEventListener("input",e=>filterStart(e.target.value));$("startSearch").addEventListener("keydown",e=>{if(e.key==="Enter")runSearch(e.target.value);if(e.key==="Escape")toggleStart(false)});
+$("taskSearch").addEventListener("keydown",e=>{if(e.key==="Enter")runSearch(e.target.value);if(e.key==="Escape")$("searchOverlay").classList.remove("open")});
+document.addEventListener("pointerdown",e=>{if($("startMenu").classList.contains("open")&&!e.target.closest("#startMenu")&&!e.target.closest("#startButton"))toggleStart(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")handleBack();if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="l"){e.preventDefault();toggleSearch()}if(e.key==="F3")toggleSearch()});
+function initialize(){updateClock();setInterval(updateClock,1000);try{if(window.PocketWin){installedApps=JSON.parse(PocketWin.getApps()||"[]");renderApps()}}catch(e){showToast("App list could not be loaded")}}
+initialize();
+</script>
+</body>
+</html>
