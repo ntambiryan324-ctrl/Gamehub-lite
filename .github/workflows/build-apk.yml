@@ -69,31 +69,12 @@ jobs:
             "cmake;3.22.1" \
             "ndk;29.0.14206865"
 
-      - name: Install MinGW-w64 for the Windows desktop shell
-        run: |
-          if ! command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
-            sudo apt-get install -y --no-install-recommends g++-mingw-w64-x86-64
-          fi
-          x86_64-w64-mingw32-g++ --version
-
-      - name: Build the Win32 desktop shell
-        run: |
-          set -euo pipefail
-          mkdir -p app/src/main/assets
-          x86_64-w64-mingw32-g++ -O2 -std=c++17 -municode -mwindows \
-            app/src/main/windows/pocketwin_shell.cpp \
-            -o app/src/main/assets/pocketwin_shell.exe \
-            -static -lshell32 -lgdi32 -luser32 -lcomctl32 -lmsimg32 -ladvapi32
-          file app/src/main/assets/pocketwin_shell.exe
-
       - name: Verify required source and submodule files
         run: |
           set -euo pipefail
           test -f app/src/main/AndroidManifest.xml
           test -f app/src/main/cpp/CMakeLists.txt
           test -f app/src/main/assets/container_pattern_common.tzst
-          test -f app/src/main/assets/pocketwin_shell.exe
-          file app/src/main/assets/pocketwin_shell.exe | grep -q "PE32+"
           test -f app/src/main/cpp/gladiorenderer/CMakeLists.txt
           test -f gradle/wrapper/gradle-wrapper.jar
           chmod +x ./gradlew
@@ -139,7 +120,7 @@ jobs:
             ACTIVITY="$(printf '%s\n' "$BADGING" | sed -n "s/^launchable-activity: name='\([^']*\)'.*/\1/p")"
 
             test -n "$PACKAGE" || { echo "Package name missing: $apk"; exit 1; }
-            test "$ACTIVITY" = "com.winlator.cmod.MainActivity" || {
+            test "$ACTIVITY" = "com.winlator.cmod.PocketWinDesktopActivity" || {
               echo "Unexpected or missing launcher activity in $apk: $ACTIVITY"
               exit 1
             }
@@ -147,12 +128,32 @@ jobs:
               echo "No ARM64 native libraries found in $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/imagefs\.tzst$' || {
+            unzip -Z1 "$apk" | grep -q '^assets/imagefs\.tzst            echo "APK structure OK: $PACKAGE / $ACTIVITY"
+          done
+
+      - name: Publish APK artifacts after build and APK validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ || {
               echo "Required Windows root filesystem image is missing from $apk"
               exit 1
             }
-            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_shell\.exe$' || {
-              echo "Bundled Windows desktop shell is missing from $apk"
+            unzip -Z1 "$apk" | grep -q '^assets/pocketwin_desktop/index\.html            echo "APK structure OK: $PACKAGE / $ACTIVITY"
+          done
+
+      - name: Publish APK artifacts after build and APK validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamehub-lite-${{ env.FLAVOR }}-${{ env.BUILD_TYPE }}-build-validated
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ || {
+              echo "PocketWin desktop interface is missing from $apk"
               exit 1
             }
             echo "APK structure OK: $PACKAGE / $ACTIVITY"
