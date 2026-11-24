@@ -1375,7 +1375,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         File shellExe = new File(shellDir, "pocketwin_shell.exe");
         File shellMarker = new File(shellDir, ".pocketwin_shell_version");
-        String shellVersion = "1.0.2";
+        String shellVersion = "1.0.4";
         if (!shellExe.isFile() || !shellMarker.isFile()
                 || !shellVersion.equals(FileUtils.readString(shellMarker).trim())) {
             byte[] shellBytes = FileUtils.read(this, "pocketwin_shell.exe");

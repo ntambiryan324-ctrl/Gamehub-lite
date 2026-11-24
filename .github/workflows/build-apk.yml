@@ -83,7 +83,7 @@ jobs:
           x86_64-w64-mingw32-g++ -O2 -std=c++17 -municode -mwindows \
             app/src/main/windows/pocketwin_shell.cpp \
             -o app/src/main/assets/pocketwin_shell.exe \
-            -static -lshell32 -lgdi32 -luser32 -lcomctl32
+            -static -lshell32 -lgdi32 -luser32 -lcomctl32 -lmsimg32 -ladvapi32
           file app/src/main/assets/pocketwin_shell.exe
 
       - name: Verify required source and submodule files
