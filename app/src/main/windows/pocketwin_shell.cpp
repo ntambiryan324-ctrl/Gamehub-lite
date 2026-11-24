@@ -114,9 +114,15 @@ static std::wstring UrlEncode(const std::wstring& value) {
         else if(c==' ')out.push_back(L'+');else{out.push_back(L'%');out.push_back(hex[c>>4]);out.push_back(hex[c&15]);}}
     return out;
 }
+static BOOL CALLBACK HideTaskbarWindow(HWND hwnd, LPARAM) {
+    wchar_t className[128]={};
+    GetClassNameW(hwnd,className,128);
+    if(_wcsicmp(className,L"Shell_TrayWnd")==0) ShowWindow(hwnd,SW_HIDE);
+    return TRUE;
+}
 static void HideLegacyWineTaskbar() {
-    HWND legacy=FindWindowW(L"Shell_TrayWnd",nullptr);
-    if(legacy) ShowWindow(legacy,SW_HIDE);
+    // Wine can expose more than one taskbar window as Explorer restarts; hide all matching windows.
+    EnumWindows(HideTaskbarWindow,0);
 }
 static void SetDefaultBrowser() {
     if(ChromePath().empty()) return;
