@@ -61,7 +61,7 @@ public class PocketWinDesktopActivity extends Activity {
 
         // Request desktop site layouts from the system Chromium WebView engine.
         String userAgent = WebSettings.getDefaultUserAgent(this);
-        userAgent = userAgent.replaceAll("\\\\(Linux; Android[^)]*\\\\)", "(X11; Linux x86_64)");
+        userAgent = userAgent.replaceAll("\\(Linux; Android[^)]*\\)", "(X11; Linux x86_64)");
         userAgent = userAgent.replace("Mobile ", "");
         settings.setUserAgentString(userAgent);
 
@@ -173,6 +173,15 @@ public class PocketWinDesktopActivity extends Activity {
                 } catch (Exception e) {
                     Toast.makeText(activity, "Could not open " + packageName, Toast.LENGTH_SHORT).show();
                 }
+            });
+        }
+
+        @JavascriptInterface
+        public void openBrowser(String url) {
+            activity.runOnUiThread(() -> {
+                Intent intent = new Intent(activity, PocketWinBrowserActivity.class);
+                intent.putExtra("url", url);
+                startActivity(intent);
             });
         }
 
