@@ -121,7 +121,7 @@ static void HideLegacyWineTaskbar() {
 static void SetDefaultBrowser() {
     if(ChromePath().empty()) return;
     const wchar_t* keys[]={L"Software\\Classes\\http\\shell\\open\\command",L"Software\\Classes\\https\\shell\\open\\command"};
-    std::wstring command = L"\\\"" + ChromePath() + L"\\\" \\"%1\\"";
+    std::wstring command = L"\"" + ChromePath() + L"\" \"%1\"";
     for(const wchar_t* path:keys) {
         HKEY key=nullptr;
         if(RegCreateKeyExW(HKEY_CURRENT_USER,path,0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS) {
