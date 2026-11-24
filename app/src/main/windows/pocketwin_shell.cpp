@@ -114,6 +114,22 @@ static std::wstring UrlEncode(const std::wstring& value) {
         else if(c==' ')out.push_back(L'+');else{out.push_back(L'%');out.push_back(hex[c>>4]);out.push_back(hex[c&15]);}}
     return out;
 }
+static void HideLegacyWineTaskbar() {
+    HWND legacy=FindWindowW(L"Shell_TrayWnd",nullptr);
+    if(legacy) ShowWindow(legacy,SW_HIDE);
+}
+static void SetDefaultBrowser() {
+    if(ChromePath().empty()) return;
+    const wchar_t* keys[]={L"Software\\Classes\\http\\shell\\open\\command",L"Software\\Classes\\https\\shell\\open\\command"};
+    std::wstring command=L"\\\""+ChromePath()+L"\\\" \\"%1\\\"";
+    for(const wchar_t* path:keys) {
+        HKEY key=nullptr;
+        if(RegCreateKeyExW(HKEY_CURRENT_USER,path,0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS) {
+            RegSetValueExW(key,nullptr,0,REG_SZ,(const BYTE*)command.c_str(),(DWORD)((command.size()+1)*sizeof(wchar_t)));
+            RegCloseKey(key);
+        }
+    }
+}
 static void StartChromeInstallIfNeeded() {
     if(!ChromePath().empty()||!Exists(CHROME_MSI)||gChromeInstallStarted)return;
     gChromeInstallStarted=true;
@@ -330,7 +346,7 @@ static LRESULT CALLBACK PanelProc(HWND h,UINT m,WPARAM w,LPARAM l){
 static LRESULT CALLBACK TaskbarProc(HWND h,UINT m,WPARAM w,LPARAM l){
     switch(m){
         case WM_CREATE:SetTimer(h,1,2200,nullptr);return 0;
-        case WM_TIMER:LoadApps();LoadRecent();InvalidateRect(h,nullptr,FALSE);if(gPanel&&IsWindowVisible(gPanel))InvalidateRect(gPanel,nullptr,FALSE);return 0;
+        case WM_TIMER:HideLegacyWineTaskbar();StartChromeInstallIfNeeded();SetDefaultBrowser();LoadApps();LoadRecent();InvalidateRect(h,nullptr,FALSE);if(gPanel&&IsWindowVisible(gPanel))InvalidateRect(gPanel,nullptr,FALSE);return 0;
         case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(h,&ps);DrawTaskbar(dc);EndPaint(h,&ps);return 0;}
         case WM_LBUTTONUP:{int x=GET_X_LPARAM(l),sw=GetSystemMetrics(SM_CXSCREEN),start=(sw-(6*46+5*5))/2;
             if(x>=start&&x<start+46)ShowStart(false);
@@ -354,6 +370,6 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int){
     gPanel=MakeLayered(L"PocketWinWin11Start",L"Start",pw,ph,(sw-pw)/2,sh-ph-72,242);
     gTaskbar=MakeLayered(L"PocketWinWin11Taskbar",L"Taskbar",sw,58,0,sh-58,229);
     if(!gPanel||!gTaskbar||!gDismiss)return 2;
-    ShowWindow(gTaskbar,SW_SHOWNOACTIVATE);UpdateWindow(gTaskbar);StartChromeInstallIfNeeded();
+    HideLegacyWineTaskbar();SetDefaultBrowser();ShowWindow(gTaskbar,SW_SHOWNOACTIVATE);UpdateWindow(gTaskbar);StartChromeInstallIfNeeded();
     MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}return (int)msg.wParam;
 }
