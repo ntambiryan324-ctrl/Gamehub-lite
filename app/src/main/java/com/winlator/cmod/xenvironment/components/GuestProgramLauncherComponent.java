@@ -580,7 +580,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             }
 
             if (!chrome64.isFile() && !chrome32.isFile()) {
-                String details = FileUtils.readString(installLog);
+                String details = installLog.isFile() ? FileUtils.readString(installLog) : null;
                 if (details != null && !details.isEmpty()) {
                     int start = Math.max(0, details.length() - 5000);
                     Log.e("PocketWin", "Chrome installation did not create chrome.exe. MSI log tail: " + details.substring(start));
