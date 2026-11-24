@@ -88,6 +88,13 @@
 
 
         <activity
+            android:name="com.winlator.cmod.PocketWinBrowserActivity"
+            android:theme="@style/PocketWinBrowserWindow"
+            android:screenOrientation="user"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
+
+        <activity
             android:name="com.winlator.cmod.XServerDisplayActivity"
             android:theme="@style/AppThemeFullscreen"
             android:launchMode="singleTask"
