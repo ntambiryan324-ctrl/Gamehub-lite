@@ -46,9 +46,6 @@ public class PocketWinBrowserActivity extends Activity {
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         WindowManager.LayoutParams params = window.getAttributes();
         params.dimAmount = 0.10f;
-        params.gravity = Gravity.TOP | Gravity.LEFT;
-        params.x = (screenWidth - windowWidth) / 2;
-        params.y = (screenHeight - windowHeight) / 2;
         window.setAttributes(params);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -196,7 +193,9 @@ public class PocketWinBrowserActivity extends Activity {
         WindowManager.LayoutParams finalParams = getWindow().getAttributes();
         finalParams.width = windowWidth;
         finalParams.height = windowHeight;
-        finalParams.gravity = Gravity.CENTER;
+        finalParams.gravity = Gravity.TOP | Gravity.LEFT;
+        finalParams.x = (screenWidth - windowWidth) / 2;
+        finalParams.y = (screenHeight - windowHeight) / 2;
         getWindow().setAttributes(finalParams);
 
         navigate(getIntent().getStringExtra("url"));
