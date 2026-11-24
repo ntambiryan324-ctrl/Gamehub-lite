@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private SharedPreferences sharedPreferences;
     private ContainerManager containerManager;
     private boolean isDarkMode;
+    private boolean skipEnvironmentSetup;
 
 
     @Override
@@ -120,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (containerManager == null) containerManager = new ContainerManager(this);
 
         Intent intent = getIntent();
+        skipEnvironmentSetup = intent.getBooleanExtra("skip_environment_setup", false);
         editInputControls = intent.getBooleanExtra("edit_input_controls", false);
         if (editInputControls) {
             selectedProfileId = intent.getIntExtra("selected_profile_id", 0);
@@ -134,19 +136,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             onNavigationItemSelected(navigationView.getMenu().findItem(menuItemId));
             navigationView.setCheckedItem(menuItemId);
 
-            if (checkStoragePermissions()) {
-                if (!ImageFsInstaller.installIfNeeded(this)) {
-                    com.winlator.cmod.contents.WineDownloader.checkFirstLaunchWineSetup(this);
-                }
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    showAllFilesAccessDialog();
+            if (!skipEnvironmentSetup) {
+                if (checkStoragePermissions()) {
+                    if (!ImageFsInstaller.installIfNeeded(this)) {
+                        com.winlator.cmod.contents.WineDownloader.checkFirstLaunchWineSetup(this);
+                    }
                 } else {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        showAllFilesAccessDialog();
+                    } else {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
+                    }
                 }
             }
 
-            if (Build.VERSION.SDK_INT >= 33) {
+            if (!skipEnvironmentSetup && Build.VERSION.SDK_INT >= 33) {
                 if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 0);
                 }
@@ -199,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onResume() {
         super.onResume();
-        if (checkStoragePermissions()) {
+        if (!skipEnvironmentSetup && checkStoragePermissions()) {
             if (!ImageFsInstaller.installIfNeeded(this)) {
                 com.winlator.cmod.contents.WineDownloader.checkFirstLaunchWineSetup(this);
             }
