@@ -77,7 +77,6 @@ import com.winlator.cmod.core.EnvVars;
 import com.winlator.cmod.core.FileUtils;
 import com.winlator.cmod.core.GPUInformation;
 import com.winlator.cmod.core.KeyValueSet;
-import com.winlator.cmod.core.MSLink;
 import com.winlator.cmod.core.OnExtractFileListener;
 import com.winlator.cmod.core.PreloaderDialog;
 import com.winlator.cmod.core.ProcessHelper;
@@ -1367,154 +1366,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
     }
 
-    private void stagePocketWinWindowsAssets() {
-        if (container == null || container.getRootDir() == null) return;
-
-        File driveC = new File(container.getRootDir(), ".wine/drive_c");
-        File shellDir = new File(driveC, "Program Files/PocketWin");
-        if (!shellDir.isDirectory()) shellDir.mkdirs();
-
-        File shellExe = new File(shellDir, "pocketwin_shell.exe");
-        File shellMarker = new File(shellDir, ".pocketwin_shell_version");
-        String shellVersion = "1.0.6";
-        if (!shellExe.isFile() || !shellMarker.isFile()
-                || !shellVersion.equals(FileUtils.readString(shellMarker).trim())) {
-            byte[] shellBytes = FileUtils.read(this, "pocketwin_shell.exe");
-            if (shellBytes != null && shellBytes.length > 10000
-                    && FileUtils.write(shellExe, shellBytes)) {
-                FileUtils.writeString(shellMarker, shellVersion);
-            } else {
-                Log.e("PocketWin", "The bundled Windows desktop shell could not be staged.");
-            }
-        }
-
-        // Keep a no-space alias in C:\\windows so Wine's command-line parser does not
-        // have to pass a quoted Program Files path when starting the desktop shell.
-        File windowsDir = new File(driveC, "windows");
-        if (!windowsDir.isDirectory()) windowsDir.mkdirs();
-        File shellAlias = new File(windowsDir, "pocketwin_shell.exe");
-        File shellAliasMarker = new File(windowsDir, ".pocketwin_shell_version");
-        if (shellExe.isFile() && (!shellAlias.isFile() || !shellAliasMarker.isFile()
-                || !shellVersion.equals(FileUtils.readString(shellAliasMarker).trim()))) {
-            if (FileUtils.copy(shellExe, shellAlias)) {
-                FileUtils.writeString(shellAliasMarker, shellVersion);
-            } else {
-                Log.e("PocketWin", "The no-space Windows shell alias could not be staged.");
-            }
-        }
-
-        createPocketWinDesktopShortcuts(driveC);
-
-        File chrome64 = new File(driveC, "Program Files/Google/Chrome/Application/chrome.exe");
-        File chrome32 = new File(driveC, "Program Files (x86)/Google/Chrome/Application/chrome.exe");
-        File chromeMsi = new File(driveC, "windows/temp/pocketwin-chrome.msi");
-        if (chrome64.isFile() || chrome32.isFile()) {
-            if (chromeMsi.exists()) chromeMsi.delete();
-        } else if (!chromeMsi.isFile() || chromeMsi.length() < 30000000L) {
-            downloadChromeInstallerForContainer(chromeMsi);
-        }
-    }
-
-    // Runs on the container setup worker thread, not the Android UI thread.
-    // Keep the large MSI inside the container's private C: drive rather than embedding it in the APK.
-    private boolean downloadChromeInstallerForContainer(File destination) {
-        File parent = destination.getParentFile();
-        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
-            Log.e("PocketWin", "Could not create the Chrome installer directory.");
-            return false;
-        }
-
-        File temporary = new File(destination.getAbsolutePath() + ".download");
-        final String installerUrl = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi";
-
-        for (int attempt = 1; attempt <= 3; attempt++) {
-            HttpURLConnection connection = null;
-            temporary.delete();
-            try {
-                Log.i("PocketWin", "Downloading Google Chrome for this container (attempt " + attempt + "/3).");
-                connection = (HttpURLConnection) new URL(installerUrl).openConnection();
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 PocketWin");
-                connection.setInstanceFollowRedirects(true);
-                connection.setConnectTimeout(30000);
-                connection.setReadTimeout(120000);
-                connection.setUseCaches(false);
-
-                int responseCode = connection.getResponseCode();
-                if (responseCode != HttpURLConnection.HTTP_OK) {
-                    throw new IOException("Google returned HTTP " + responseCode);
-                }
-
-                long expectedLength = connection.getContentLengthLong();
-                long downloaded = 0L;
-                byte[] buffer = new byte[131072];
-                try (InputStream input = connection.getInputStream();
-                     FileOutputStream output = new FileOutputStream(temporary)) {
-                    int count;
-                    while ((count = input.read(buffer)) != -1) {
-                        output.write(buffer, 0, count);
-                        downloaded += count;
-                    }
-                    output.getFD().sync();
-                }
-
-                if (downloaded < 30000000L || (expectedLength > 0L && downloaded != expectedLength)) {
-                    throw new IOException("Chrome MSI download was incomplete (" + downloaded + " bytes).");
-                }
-
-                if (destination.exists() && !destination.delete()) {
-                    throw new IOException("Could not replace the previous Chrome installer.");
-                }
-                if (!temporary.renameTo(destination)) {
-                    throw new IOException("Could not move the completed Chrome installer into the container.");
-                }
-
-                Log.i("PocketWin", "Chrome installer ready in this container (" + downloaded + " bytes).");
-                return true;
-            } catch (Exception e) {
-                Log.w("PocketWin", "Chrome download attempt " + attempt + " failed: " + e.getMessage());
-                temporary.delete();
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-        }
-
-        Log.e("PocketWin", "Google Chrome could not be downloaded. The Wine desktop will still start; connect to the internet and restart the container to retry.");
-        return false;
-    }
-
-    // Create genuine Windows Shell Link (.lnk) files on this container's desktop.
-    // Targets may be installed after first launch; the links remain valid and are repaired on later launches.
-    private void createPocketWinDesktopShortcuts(File driveC) {
-        File desktop = container.getDesktopDir();
-        if (!desktop.isDirectory() && !desktop.mkdirs()) {
-            Log.w("PocketWin", "Could not create the Windows desktop folder.");
-            return;
-        }
-        String[][] apps = new String[][] {
-            {"Google Chrome", "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"},
-            {"File Explorer", "C:\\windows\\explorer.exe"},
-            {"Notepad", "C:\\windows\\notepad.exe"},
-            {"Calculator", "C:\\windows\\system32\\calc.exe"},
-            {"Command Prompt", "C:\\windows\\system32\\cmd.exe"},
-            {"Task Manager", "C:\\windows\\system32\\taskmgr.exe"},
-            {"Control Panel", "C:\\windows\\system32\\control.exe"},
-            {"Registry Editor", "C:\\windows\\regedit.exe"},
-            {"Wine Configuration", "C:\\windows\\system32\\winecfg.exe"}
-        };
-        for (String[] app : apps) {
-            File shortcut = new File(desktop, app[0] + ".lnk");
-            if (shortcut.isFile() && shortcut.length() > 64) continue;
-            try {
-                MSLink.Options options = new MSLink.Options();
-                options.targetPath = app[1];
-                options.iconLocation = app[1];
-                MSLink.createFile(options, shortcut);
-            } catch (Exception e) {
-                Log.w("PocketWin", "Could not create desktop shortcut for " + app[0], e);
-            }
-        }
-    }
-
     private void setupWineSystemFiles() {
         String appVersion = String.valueOf(AppUtils.getVersionCode(this));
         String imgVersion = String.valueOf(imageFs.getVersion());
@@ -1561,7 +1412,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             containerDataChanged = true;
         }
 
-        stagePocketWinWindowsAssets();
         WineStartMenuCreator.create(this, container);
         WineUtils.createDosdevicesSymlinks(container);
         WineUtils.setWinebusOptions(container);
@@ -2902,9 +2752,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 envVars.remove("EXTRA_EXEC_ARGS"); // Remove the key after use
             }
         }
-        // Run the native Win32 PocketWin shell inside Wine. Actual game shortcuts use winhandler.exe.
+        // Start a plain Wine Explorer session only when a user explicitly opens a container without an app.
+        // The PocketWin desktop itself is Android-native; installed Windows shortcuts run through winhandler.
         String command = args.trim().isEmpty()
-                ? "C:\\windows\\pocketwin_shell.exe"
+                ? "explorer.exe"
                 : "winhandler.exe " + args.trim();
 
         return command;
