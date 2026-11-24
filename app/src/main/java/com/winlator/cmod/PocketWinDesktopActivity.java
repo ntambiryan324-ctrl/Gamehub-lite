@@ -105,9 +105,10 @@ public class PocketWinDesktopActivity extends Activity {
         super.onDestroy();
     }
 
-    private void openMainSection(int sectionId) {
+    private void openMainSection(int sectionId, boolean skipEnvironmentSetup) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra("selected_menu_item_id", sectionId);
+        intent.putExtra("skip_environment_setup", skipEnvironmentSetup);
         startActivity(intent);
     }
 
@@ -187,22 +188,22 @@ public class PocketWinDesktopActivity extends Activity {
 
         @JavascriptInterface
         public void openWindowsApps() {
-            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_shortcuts));
+            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_shortcuts, false));
         }
 
         @JavascriptInterface
         public void openContainers() {
-            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_containers));
+            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_containers, false));
         }
 
         @JavascriptInterface
         public void openFileManager() {
-            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_file_manager));
+            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_file_manager, true));
         }
 
         @JavascriptInterface
         public void openPocketWinSettings() {
-            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_settings));
+            activity.runOnUiThread(() -> openMainSection(R.id.main_menu_settings, true));
         }
 
         @JavascriptInterface
