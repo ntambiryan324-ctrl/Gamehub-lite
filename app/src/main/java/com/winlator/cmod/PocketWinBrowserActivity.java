@@ -136,7 +136,7 @@ public class PocketWinBrowserActivity extends Activity {
         settings.setAllowContentAccess(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) settings.setSafeBrowsingEnabled(true);
         String userAgent = WebSettings.getDefaultUserAgent(this);
-        userAgent = userAgent.replaceAll("\\\\(Linux; Android[^)]*\\\\)", "(X11; Linux x86_64)");
+        userAgent = userAgent.replaceAll("\\(Linux; Android[^)]*\\)", "(X11; Linux x86_64)");
         userAgent = userAgent.replace("Mobile ", "");
         settings.setUserAgentString(userAgent);
         browser.setWebChromeClient(new WebChromeClient());
